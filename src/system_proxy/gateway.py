@@ -84,7 +84,7 @@ def upstream_tunnel(ip: str, port: int, protocol: str, host: str,
                 if not piece or len(headers) >= 4096:
                     raise ConnectionError("Invalid HTTP proxy response")
                 headers += piece
-            status = headers.split(b"\r\n", 1)[0]
+            status = bytes(headers).split(b"\r\n", 1)[0]
             fields = status.split(b" ", 2)
             if len(fields) < 2 or fields[0] not in {b"HTTP/1.0", b"HTTP/1.1"}:
                 raise ConnectionError("Malformed HTTP CONNECT response")
