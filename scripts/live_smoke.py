@@ -75,7 +75,7 @@ def main() -> None:
     print("BASELINE_EXAMPLE_COM", baseline, flush=True)
 
     report = Collector(max_pages=1, page_size=100, timeout=TIMEOUT,
-                       max_bytes=2_000_000, max_rows=15_000).collect(
+                       max_bytes=8_000_000, max_rows=50_000).collect(
                            ("hproxy", "geonode"))
     for source, stats in report.sources.items():
         print("SOURCE", source, json.dumps(stats, sort_keys=True), flush=True)
