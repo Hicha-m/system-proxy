@@ -43,11 +43,21 @@ python -c 'import requests; print(requests.get("https://example.com", proxies={"
 
 ## Limites
 
-- Le tunnel n'implémente pas encore la rotation automatique sur échec ni les sessions persistantes ; changement de proxy seulement lorsqu'un nouveau tunnel est établi.
+- La passerelle réalise désormais une rotation round-robin au début de chaque tunnel et de nouvelles tentatives limitées uniquement pendant la connexion à l'upstream. Aucune reprise n'a lieu après l'envoi d'un 200 au client ; les sessions persistantes ne sont pas implémentées.
 - Pas de prise en charge des requêtes HTTP en clair.
 - Les upstreams HTTP, SOCKS4a et SOCKS5 NO-AUTH sont pris en charge ; le transport **client vers gateway** reste HTTP CONNECT sur loopback.
-- La gateway n'utilise pas encore les métriques en direct pour ajuster l'historique : les échecs d'upstream tunnel sont abandonnés, et l'intégration d'observations horodatées se fera ensuite.
+- Les résultats de négociation CONNECT sont désormais enregistrés dans une table indépendante `gateway_attempts`, sans modifier les scores globaux ni prétendre connaître les codes de réponse HTTPS des sites. Voir [rotation et audit SQLite](FAILOVER_AND_AUDIT.md).
 - Aucune garantie de confidentialité des proxys publics ; ne pas faire transiter des données sensibles par un proxy non fiable.
+
+## Rotation et audit CONNECT
+
+La passerelle utilise `--max-attempts 3` et `--cooldown-seconds 90` par défaut. Pour les historiques :
+
+```bash
+system-proxy-gateway-stats --db proxy-history.sqlite3 --domain example.com --protocol http
+```
+
+Un upstream qui refuse explicitement CONNECT arrête la tentative sans essayer un autre proxy. Un échec réseau transitoire autorise au maximum le nombre configuré de tentatives sur des proxies distincts déjà vérifiés. Le client ne voit `200 Connection Established` **qu'après** une négociation réussie.
 
 ## Tests
 
