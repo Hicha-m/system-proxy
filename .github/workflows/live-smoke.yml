@@ -1,15 +1,15 @@
 name: Live network smoke test (opt-in branch only)
 
 on:
-  push:
-    branches:
-      - test/live-network-smoke-20261027
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
   real-network:
+    if: github.head_ref == 'test/live-network-smoke-20261027'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
