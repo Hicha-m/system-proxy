@@ -27,6 +27,19 @@ Le journal sépare les **orientations retenues pour le cadrage**, les **proposit
 **Pourquoi :** rechercher en continu de meilleures fonctionnalités et éviter une architecture enfermée dans les références initiales.  
 **Condition :** toute extension passe par audit, licence, benchmark, arbitrage et tests.
 
+### D-005 — Sources qui se recoupent, provenance préservée
+
+**Décision de cadrage :** accepter plusieurs sources publiques et dédupliquer les endpoints normalisés, tout en conservant toutes les observations et provenances. Une source peut être utile même si elle republie des endpoints déjà connus.  
+**Pourquoi :** des recoupements sont confirmés dans les configurations de Monosans, Maximilianfeix et ProxyGather ; la valeur marginale est plus importante que le volume brut.  
+**Conséquence :** mesurer candidats uniques, proxies validés supplémentaires, fraîcheur et coût, sans lancer plusieurs moteurs redondants par défaut.  
+**Référence :** [SOURCES_AND_OVERLAPS.md](SOURCES_AND_OVERLAPS.md).
+
+### D-006 — Trois catégories d'intégrations distinctes
+
+**Décision de cadrage :** distinguer (1) listes publiques, (2) upstreams de proxies authentifiés et (3) APIs de scraping hébergées.  
+**Pourquoi :** Webshare expose un endpoint proxy utilisable directement ; GeoNode Scraper et IPRoyal Scraper exécutent une tâche d'extraction distante et ne sont pas des proxys génériques interchangeables.  
+**Conséquence :** contrat de capacités explicites, quotas et facturation séparés et choix des backends selon l'usage ; aucun fallback payant implicite.
+
 ## Hypothèses, pas encore des décisions
 
 - **H-001 :** Python pourrait être le langage d'orchestration initial ; Rust est à envisager seulement si un benchmark démontre sa valeur.
