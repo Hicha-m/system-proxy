@@ -53,6 +53,8 @@ Le `?` signale une interface candidate non décidée. Un **proxy gateway** n'est
 
 ### Frontières fonctionnelles à valider
 
+**Complément (2026-10-27) :** le projet distinguera explicitement les *sources de listes*, les *upstreams proxy gérés* (compte, identifiants, bande passante) et les *services de récupération de pages hébergés* (requêtes, crédits, extraction HTML/Markdown). Ces derniers ne seront jamais présentés comme des proxies HTTP/SOCKS interchangeables. Voir [SOURCES_AND_OVERLAPS.md](SOURCES_AND_OVERLAPS.md).
+
 | Responsabilité | Entrée | Sortie | Exigence centrale |
 | --- | --- | --- | --- |
 | Sources / découverte | Définition de sources, nouvelles listes | Candidats bruts | Provenance traçable, sources désactivables |
@@ -121,6 +123,8 @@ Aucune connexion à un proxy public ne doit véhiculer de secrets (identifiants,
 
 ### P1 — Audit comparatif (prochaine phase)
 - Auditer les trois dépôts, leurs versions, licences, dépendances, architecture, sources et validations.
+- Inclure les nouvelles solutions recensées dans [SOURCES_AND_OVERLAPS.md](SOURCES_AND_OVERLAPS.md) : listes publiques (GeoNode, HProxy, ProxyCompass), upstream authentifié (Webshare), scraping hébergé (GeoNode, IPRoyal).
+- Identifier le recouvrement **confirmé par les sources**, puis mesurer le chevauchement effectif des endpoints et le rendement marginal par fournisseur.
 - Reproduire leurs comportements essentiels.
 - **Sortie :** matrice de capacités prouvées, inventaire des chevauchements et risques, options de composition.
 
