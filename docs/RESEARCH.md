@@ -3,6 +3,12 @@
 **État :** recherche préliminaire à partir des dépôts/README ; **pas encore d'audit source ni de benchmark**.  
 **Date de référence :** 2026-10-27.
 
+## Extension du périmètre : sources et fournisseurs (2026-10-27)
+
+La comparaison des nouveaux candidats, leurs catégories, les chevauchements **confirmés dans le code**, les pistes de benchmark et les précautions de sécurité sont documentés dans **[SOURCES_AND_OVERLAPS.md](SOURCES_AND_OVERLAPS.md)**.
+
+Candidats ajoutés : **GeoNode Free Proxy List, ProxyCompass Free Proxy List, HProxy, Webshare, GeoNode Scraper API et IPRoyal Web Scraper API**. Les listes publiques, upstreams authentifiés et APIs d'extraction hébergée ne sont **pas** des produits interchangeables ; ils exigent des adaptateurs avec capacités distinctes. Les secrets ne doivent jamais être versionnés.
+
 ## Trois références initiales
 
 | Dépôt | Capacités annoncées / visibles dans les README | Points à contrôler dans le code | Licence |
