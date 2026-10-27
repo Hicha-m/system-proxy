@@ -213,7 +213,7 @@ class Gateway(socketserver.ThreadingMixIn, socketserver.TCPServer):
                  protocol: str, freshness_seconds: int, min_score: float,
                  token: str | None, timeout: float, max_tunnel_seconds: int,
                  require_domain_history: bool = False):
-        if not 1024 <= port <= 65535 or not 1 <= max_tunnel_seconds <= 600:
+        if not (port == 0 or 1024 <= port <= 65535) or not 1 <= max_tunnel_seconds <= 600:
             raise ValueError("Unsafe listener or time limits")
         if not 0 < timeout <= 30 or not 1 <= freshness_seconds <= 2_592_000:
             raise ValueError("Unsafe validation limits")
