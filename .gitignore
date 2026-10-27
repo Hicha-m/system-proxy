@@ -1,0 +1,21 @@
+# Generated output and local configuration
+proxies.json
+*.tmp
+.env
+.env.*
+!.env.example
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+build/
+dist/
+
+# Editors
+.vscode/
+.idea/
