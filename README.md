@@ -1,6 +1,6 @@
 # system-proxy
 
-> **Statut : premier MVP de collecte (branche de développement) — pas encore de gateway ni de validation locale.**
+> **Statut : collecte, vérification HTTP locale et historique par destination implémentés — pas encore de passerelle de rotation.**
 
 **system-proxy** vise à proposer **une application unique de gestion de proxies**, réutilisable par plusieurs logiciels (Python, JobSpy, Playwright, etc.) via des interfaces stables.
 
@@ -49,7 +49,20 @@ system-proxy-check --db proxy-history.sqlite3 --report-only
 - Produit `proxy-report.json` avec score de fiabilité et résultats par source.
 - **SOCKS4/SOCKS5 et HTTPS-proxy ne sont pas encore vérifiés**, afin de ne pas déclarer leur statut sur la base de tests incomplets.
 
-Voir [docs/LOCAL_VERIFICATION.md](docs/LOCAL_VERIFICATION.md). Les proxies **ne sont pas vérifiés localement** ; la rotation et les intégrations Webshare / API de scraping arrivent dans des phases ultérieures.
+Voir [docs/LOCAL_VERIFICATION.md](docs/LOCAL_VERIFICATION.md).
+
+### Résultats par domaine, sans sondage automatique
+
+```bash
+# Après une requête autorisée de ton application :
+system-proxy-domain --db proxy-history.sqlite3 record \
+  --ip 8.8.8.8 --port 8080 --domain example.com --http-status 403
+
+# Consulter les résultats par destination sans nouvelle requête :
+system-proxy-domain --db proxy-history.sqlite3 report --domain example.com
+```
+
+Les statuts HTTP 403/429 ne prouvent pas une panne générale du proxy. La notation par destination est séparée du score global. **Les requêtes et les domaines ne sont jamais automatiquement testés par cette commande.** Voir [docs/DESTINATION_HEALTH.md](docs/DESTINATION_HEALTH.md). Les proxies **ne sont pas vérifiés localement** ; la rotation et les intégrations Webshare / API de scraping arrivent dans des phases ultérieures.
 
 Voir [fonctionnement, limites et prochains travaux](docs/COLLECTOR_MVP.md).
 
@@ -61,6 +74,7 @@ Voir [fonctionnement, limites et prochains travaux](docs/COLLECTOR_MVP.md).
 - [Journal de décisions et questions ouvertes](docs/DECISIONS.md)
 - [Premier collecteur unifié, commandes et limites](docs/COLLECTOR_MVP.md)
 - [Vérification locale, score et historique SQLite](docs/LOCAL_VERIFICATION.md)
+- [Historique et score par destination](docs/DESTINATION_HEALTH.md)
 - [Comparatif des sources et doublons](docs/SOURCES_AND_OVERLAPS.md)
 
 ## Prochaine étape
