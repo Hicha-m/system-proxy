@@ -1,4 +1,4 @@
-"""CLI entrypoint for checking public HTTP proxy candidates."""
+"""CLI entrypoint for checking HTTP, SOCKS4a and SOCKS5 candidates."""
 from __future__ import annotations
 
 import argparse
@@ -13,6 +13,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--input", type=Path, default=Path("proxies.json"))
     p.add_argument("--db", type=Path, default=Path("proxy-history.sqlite3"))
     p.add_argument("--output", type=Path, default=Path("proxy-report.json"))
+    p.add_argument("--protocol", choices=["http","socks4","socks5"], default="http")
     p.add_argument("--max-checks", type=int, default=25)
     p.add_argument("--workers", type=int, default=6)
     p.add_argument("--timeout", type=float, default=5)
@@ -33,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
             if len(data["proxies"]) > 50000:
                 p.error("Too many candidates")
             store.import_candidates(data["proxies"])
-            targets = store.candidates("http", args.max_checks)
+            targets = store.candidates(args.protocol, args.max_checks)
             checks = verify_candidates(
                 targets, timeout=args.timeout, workers=args.workers,
                 max_candidates=args.max_checks)
