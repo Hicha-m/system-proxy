@@ -25,7 +25,7 @@ class CheckTests(unittest.TestCase):
         def timeout(*_):
             raise TimeoutError()
         self.assertEqual(check_one("8.8.8.8", 80, "http", 1, timeout).status, "failed")
-        unsupported = check_one("8.8.8.8", 80, "socks5", 1, lambda *_: (True, "ok"))
+        unsupported = check_one("8.8.8.8", 80, "https", 1, lambda *_: (True, "ok"))
         self.assertEqual((unsupported.status, unsupported.reason),
                          ("unavailable", "protocol_not_implemented"))
 

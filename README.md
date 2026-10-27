@@ -1,6 +1,6 @@
 # system-proxy
 
-> **Statut : collecte, vérification HTTP locale et historique par destination implémentés — pas encore de passerelle de rotation.**
+> **Statut : collecte, vérification HTTP/SOCKS4a/SOCKS5 et sélection locale — pas encore de passerelle de rotation.**
 
 **system-proxy** vise à proposer **une application unique de gestion de proxies**, réutilisable par plusieurs logiciels (Python, JobSpy, Playwright, etc.) via des interfaces stables.
 
@@ -66,6 +66,25 @@ Les statuts HTTP 403/429 ne prouvent pas une panne générale du proxy. La notat
 
 Voir [fonctionnement, limites et prochains travaux](docs/COLLECTOR_MVP.md).
 
+
+### Contrôle SOCKS4a / SOCKS5 et sélection locale
+
+```bash
+# Test HTTPS (example.com) au travers de SOCKS5 puis SOCKS4a :
+system-proxy-check --input proxies.json --protocol socks5 --db proxy-history.sqlite3 --max-checks 25
+system-proxy-check --input proxies.json --protocol socks4 --db proxy-history.sqlite3 --max-checks 25
+
+# Sélectionne un candidat ayant réussi un contrôle récent (aucun trafic réseau) :
+system-proxy-select --db proxy-history.sqlite3 --protocol socks5
+
+# Sélectionne seulement si une application a aussi observé un succès sur ce domaine :
+system-proxy-select --db proxy-history.sqlite3 --protocol socks5 --domain example.com
+```
+
+Les contrôles SOCKS prennent en charge SOCKS4a et SOCKS5 sans authentification, et **vérifient le certificat TLS** du site fixe `example.com`. La commande de sélection ne fait **aucune requête**, échoue sans résultats suffisamment récents, et ne fournit pas encore de passerelle HTTP/SOCKS à tes applications.
+
+Voir [la documentation de la sélection et des contrôles SOCKS](docs/SOCKS_AND_SELECTION.md).
+
 ## Documentation
 
 - [Plan de projet, architecture candidate et roadmap](docs/PROJECT_PLAN.md)
@@ -75,6 +94,7 @@ Voir [fonctionnement, limites et prochains travaux](docs/COLLECTOR_MVP.md).
 - [Premier collecteur unifié, commandes et limites](docs/COLLECTOR_MVP.md)
 - [Vérification locale, score et historique SQLite](docs/LOCAL_VERIFICATION.md)
 - [Historique et score par destination](docs/DESTINATION_HEALTH.md)
+- [Tests SOCKS4a/SOCKS5 et sélection prudente](docs/SOCKS_AND_SELECTION.md)
 - [Comparatif des sources et doublons](docs/SOURCES_AND_OVERLAPS.md)
 
 ## Prochaine étape

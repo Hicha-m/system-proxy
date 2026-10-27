@@ -2,7 +2,7 @@
 
 A successful check means the chosen HTTPS origin returned the expected content.
 It does not imply anonymity, safety, or success against other target sites.
-Only public IP literals are accepted. SOCKS verification is deferred.
+Only public IP literals are accepted. SOCKS4a and SOCKS5 NO-AUTH supported.
 """
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from urllib.request import HTTPSHandler, ProxyHandler, Request, build_opener
 from typing import Callable
 
 from .collect import normalize_endpoint
+from .socks import probe_socks
 
 
 @dataclass(frozen=True)
@@ -63,15 +64,18 @@ Probe = Callable[[str, int, float], tuple[bool, str]]
 
 
 def check_one(ip: str, port: int, protocol: str, timeout: float,
-              probe: Probe = probe_http) -> Check:
+              probe: Probe = probe_http, socks_probe=probe_socks) -> Check:
     from datetime import datetime, timezone
     stamp = datetime.now(timezone.utc).isoformat()
     try:
         normalize_endpoint(f"{ip}:{port}")
-        if protocol != "http":
+        if protocol not in {"http", "socks4", "socks5"}:
             return Check(ip, port, protocol, "unavailable", None, "protocol_not_implemented", stamp)
         start = time.monotonic()
-        ok, reason = probe(ip, port, timeout)
+        if protocol == "http":
+            ok, reason = probe(ip, port, timeout)
+        else:
+            ok, reason = socks_probe(ip, port, timeout, protocol)
         elapsed = round((time.monotonic() - start) * 1000, 2)
         return Check(ip, port, protocol, "passed" if ok else "failed", elapsed, reason[:100], stamp)
     except (OSError, ValueError, TimeoutError, HTTPError, URLError, ssl.SSLError) as exc:
@@ -88,7 +92,7 @@ def verify_candidates(candidates: list[tuple[str, int, str]], *,
     unique = list(dict.fromkeys(candidates))[:max_candidates]
     for ip, port, _ in unique:
         normalize_endpoint(f"{ip}:{port}")
-    if baseline and any(proto == "http" for _, _, proto in unique) and not direct_baseline(timeout):
+    if baseline and any(proto in {"http", "socks4", "socks5"} for _, _, proto in unique) and not direct_baseline(timeout):
         from datetime import datetime, timezone
         stamp = datetime.now(timezone.utc).isoformat()
         return [Check(ip, port, proto, "unavailable", None, "check_target_unavailable", stamp)
