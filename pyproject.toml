@@ -12,6 +12,7 @@ dependencies = []
 [project.scripts]
 system-proxy = "system_proxy.__main__:main"
 system-proxy-check = "system_proxy.check_cli:main"
+system-proxy-domain = "system_proxy.destination_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
