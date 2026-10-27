@@ -15,6 +15,7 @@ system-proxy-check = "system_proxy.check_cli:main"
 system-proxy-domain = "system_proxy.destination_cli:main"
 system-proxy-select = "system_proxy.select:main"
 system-proxy-gateway = "system_proxy.gateway:main"
+system-proxy-gateway-stats = "system_proxy.gateway_history:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

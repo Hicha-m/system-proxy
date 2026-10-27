@@ -137,6 +137,56 @@ class ListenerTests(unittest.TestCase):
             with contextlib.suppress(OSError):
                 b.close()
 
+    def test_transient_upstream_failure_returns_502_before_connect(self):
+        with History(self.db) as h:
+            h.add_checks([Check("8.8.8.8",8080,"http","passed",20,
+                                "ok",datetime.now(timezone.utc).isoformat())])
+        raw=(b"CONNECT example.com:443 HTTP/1.1\r\n"+
+             b"Proxy-Authorization: Bearer "+self.token.encode()+b"\r\n\r\n")
+        with patch("system_proxy.gateway.upstream_tunnel",
+                   side_effect=ConnectionResetError("simulated")) as dial:
+            self.assertIn(b" 502 ", self.request(raw))
+            self.assertEqual(dial.call_count, 1)
+        with History(self.db) as h:
+            from system_proxy.gateway_history import GatewayAttempts
+            report=GatewayAttempts(h).summary("example.com")
+            self.assertEqual(report["connect_error"], 1)
+            self.assertEqual(report["connected"], 0)
+
+    def test_tls_stream_failure_never_reconnects_after_200(self):
+        with History(self.db) as h:
+            h.add_checks([Check("8.8.8.8",8080,"http","passed",20,
+                                "ok",datetime.now(timezone.utc).isoformat())])
+        raw=(b"CONNECT example.com:443 HTTP/1.1\r\n"+
+             b"Proxy-Authorization: Bearer "+self.token.encode()+b"\r\n\r\n")
+        local,remote=socket.socketpair()
+        try:
+            with patch("system_proxy.gateway.upstream_tunnel",return_value=remote) as dial:
+                with patch("system_proxy.gateway.relay",
+                           side_effect=BrokenPipeError("simulated")):
+                    self.assertIn(b" 200 ",self.request(raw))
+            self.assertEqual(dial.call_count,1)
+            with History(self.db) as h:
+                from system_proxy.gateway_history import GatewayAttempts
+                self.assertEqual(GatewayAttempts(h).summary("example.com")["connected"],1)
+        finally:
+            local.close()
+            with contextlib.suppress(OSError):
+                remote.close()
+
+    def test_over_capacity_is_rejected_without_spawning_handler(self):
+        from system_proxy.gateway import MAX_CLIENTS
+        for _ in range(MAX_CLIENTS):
+            self.assertTrue(self.server.capacity.acquire(blocking=False))
+        try:
+            with patch("system_proxy.gateway.GatewayHandler.handle",
+                       side_effect=AssertionError("should not spawn")):
+                self.assertIn(b" 503 ",self.request(
+                    b"CONNECT example.com:443 HTTP/1.1\r\n\r\n"))
+        finally:
+            for _ in range(MAX_CLIENTS):
+                self.server.capacity.release()
+
     def test_refuses_non_loopback_and_missing_allowlist(self):
         with self.assertRaises(ValueError):
             Gateway(port=9000,db_path=self.db,allowed_domains=set(),
