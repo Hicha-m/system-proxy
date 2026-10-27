@@ -19,3 +19,8 @@ dist/
 # Editors
 .vscode/
 .idea/
+
+# Local verification database and reports
+*.sqlite3
+*.sqlite3-*
+proxy-report.json
