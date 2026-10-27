@@ -34,7 +34,22 @@ python -m system_proxy --output proxies.json
 python -m unittest discover -s tests -v
 ```
 
-Le JSON contient les candidats, protocoles, provenances et métadonnées déclarées par les sources. Les proxies **ne sont pas vérifiés localement** ; la rotation et les intégrations Webshare / API de scraping arrivent dans des phases ultérieures.
+Le JSON contient les candidats, protocoles, provenances et métadonnées déclarées par les sources.
+
+### Vérification locale et historique (HTTP CONNECT)
+
+```bash
+python -m system_proxy --output proxies.json
+system-proxy-check --input proxies.json --db proxy-history.sqlite3 --max-checks 25 --workers 6
+system-proxy-check --db proxy-history.sqlite3 --report-only
+```
+
+- Effectue un test HTTPS avec **certificat TLS valide** et contenu attendu via chaque proxy HTTP, après avoir vérifié que la cible est accessible directement.
+- Enregistre les résultats, les horodatages et les provenances dans SQLite.
+- Produit `proxy-report.json` avec score de fiabilité et résultats par source.
+- **SOCKS4/SOCKS5 et HTTPS-proxy ne sont pas encore vérifiés**, afin de ne pas déclarer leur statut sur la base de tests incomplets.
+
+Voir [docs/LOCAL_VERIFICATION.md](docs/LOCAL_VERIFICATION.md). Les proxies **ne sont pas vérifiés localement** ; la rotation et les intégrations Webshare / API de scraping arrivent dans des phases ultérieures.
 
 Voir [fonctionnement, limites et prochains travaux](docs/COLLECTOR_MVP.md).
 
@@ -45,6 +60,7 @@ Voir [fonctionnement, limites et prochains travaux](docs/COLLECTOR_MVP.md).
 - [Sources supplémentaires et matrice de chevauchement](docs/SOURCES_AND_OVERLAPS.md)
 - [Journal de décisions et questions ouvertes](docs/DECISIONS.md)
 - [Premier collecteur unifié, commandes et limites](docs/COLLECTOR_MVP.md)
+- [Vérification locale, score et historique SQLite](docs/LOCAL_VERIFICATION.md)
 - [Comparatif des sources et doublons](docs/SOURCES_AND_OVERLAPS.md)
 
 ## Prochaine étape
