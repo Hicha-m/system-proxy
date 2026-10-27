@@ -1,6 +1,6 @@
 # system-proxy
 
-> **Statut : collecte, vérification HTTP/SOCKS4a/SOCKS5 et sélection locale — pas encore de passerelle de rotation.**
+> **Statut : collecte, vérification HTTP/SOCKS4a/SOCKS5, sélection et passerelle locale HTTPS CONNECT. Rotation avancée encore à développer.**
 
 **system-proxy** vise à proposer **une application unique de gestion de proxies**, réutilisable par plusieurs logiciels (Python, JobSpy, Playwright, etc.) via des interfaces stables.
 
@@ -85,6 +85,23 @@ Les contrôles SOCKS prennent en charge SOCKS4a et SOCKS5 sans authentification,
 
 Voir [la documentation de la sélection et des contrôles SOCKS](docs/SOCKS_AND_SELECTION.md).
 
+### Passerelle locale HTTPS CONNECT
+
+```bash
+# Requiert une base SQLite contenant des contrôles positifs récents.
+# Uniquement les connexions vers example.com:443 sont autorisées :
+system-proxy-gateway --db proxy-history.sqlite3 --protocol http \
+  --allow-domain example.com --port 8899
+
+# Le client configure http://127.0.0.1:8899 comme proxy HTTP.
+# Une authentification Bearer est également disponible via
+# SYSTEM_PROXY_GATEWAY_TOKEN (voir documentation).
+```
+
+La passerelle sélectionne un proxy vérifié pour chaque **nouveau tunnel CONNECT**. Elle écoute exclusivement sur `127.0.0.1`, impose une liste de domaines autorisés, et ne peut pas lire les codes HTTP à l'intérieur du tunnel HTTPS.
+
+Voir [docs/LOCAL_GATEWAY.md](docs/LOCAL_GATEWAY.md).
+
 ## Documentation
 
 - [Plan de projet, architecture candidate et roadmap](docs/PROJECT_PLAN.md)
@@ -95,6 +112,7 @@ Voir [la documentation de la sélection et des contrôles SOCKS](docs/SOCKS_AND_
 - [Vérification locale, score et historique SQLite](docs/LOCAL_VERIFICATION.md)
 - [Historique et score par destination](docs/DESTINATION_HEALTH.md)
 - [Tests SOCKS4a/SOCKS5 et sélection prudente](docs/SOCKS_AND_SELECTION.md)
+- [Passerelle HTTPS CONNECT locale et restrictions](docs/LOCAL_GATEWAY.md)
 - [Comparatif des sources et doublons](docs/SOURCES_AND_OVERLAPS.md)
 
 ## Prochaine étape
