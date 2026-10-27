@@ -1,6 +1,6 @@
 # system-proxy
 
-> **Statut : cadrage / documentation — aucune implémentation validée.**
+> **Statut : premier MVP de collecte (branche de développement) — pas encore de gateway ni de validation locale.**
 
 **system-proxy** vise à proposer **une application unique de gestion de proxies**, réutilisable par plusieurs logiciels (Python, JobSpy, Playwright, etc.) via des interfaces stables.
 
@@ -23,17 +23,34 @@ Le produit doit unifier la **découverte des sources, la collecte, la vérificat
 
 **Aucun de ces trois dépôts n'est désigné comme base de code définitive.** Leurs capacités et leurs chevauchements doivent être comparés.
 
+## Premier incrément de collecte (branche de développement)
+
+Un collecteur Python léger et autonome existe maintenant. Il utilise **un catalogue canonique par fournisseur** : HProxy (également référencé par Monosans et Maximilianfeix), GeoNode (Maximilianfeix et ProxyGather), et ProxyCompass (expérimental). Il **ne lance pas trois moteurs concurrents**.
+
+```bash
+python -m pip install -e .
+python -m system_proxy --list-sources
+python -m system_proxy --output proxies.json
+python -m unittest discover -s tests -v
+```
+
+Le JSON contient les candidats, protocoles, provenances et métadonnées déclarées par les sources. Les proxies **ne sont pas vérifiés localement** ; la rotation et les intégrations Webshare / API de scraping arrivent dans des phases ultérieures.
+
+Voir [fonctionnement, limites et prochains travaux](docs/COLLECTOR_MVP.md).
+
 ## Documentation
 
 - [Plan de projet, architecture candidate et roadmap](docs/PROJECT_PLAN.md)
 - [Registre d'évaluation des dépôts et veille](docs/RESEARCH.md)
 - [Sources supplémentaires et matrice de chevauchement](docs/SOURCES_AND_OVERLAPS.md)
 - [Journal de décisions et questions ouvertes](docs/DECISIONS.md)
+- [Premier collecteur unifié, commandes et limites](docs/COLLECTOR_MVP.md)
+- [Comparatif des sources et doublons](docs/SOURCES_AND_OVERLAPS.md)
 
 ## Prochaine étape
 
 **Phase 1 : audit comparatif** des trois dépôts et des nouvelles sources documentées dans [SOURCES_AND_OVERLAPS.md](docs/SOURCES_AND_OVERLAPS.md). Produire une matrice vérifiée dans le code (pas uniquement d'après les README), confirmer les licences et les dépendances, puis proposer les décisions d'intégration.
 
-**Hors du périmètre actuel :** implémentation, déploiement, exploitation de proxies sur Internet et promesse de performances. Toute fonctionnalité non validée reste une hypothèse.
+**Hors du périmètre de ce premier incrément :** passerelle de rotation, validation réseau, déploiement public et promesse de performances. Toute fonctionnalité non mesurée reste une hypothèse.
 
 _Documentation initiale : 27 octobre 2026._
