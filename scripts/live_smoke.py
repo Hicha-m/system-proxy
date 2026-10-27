@@ -29,7 +29,7 @@ def gateway_probe(ip: str, port: int, protocol: str, db_path: Path) -> dict:
     server = Gateway(
         port=0, db_path=db_path, allowed_domains={"example.com"},
         protocol=protocol, freshness_seconds=600, min_score=0,
-        token=None, timeout=5, max_tunnel_seconds=15, max_attempts=1,
+        token=None, timeout=5, max_tunnel_seconds=15, max_attempts=3,
         cooldown_seconds=60,
     )
     thread = threading.Thread(target=server.serve_forever, daemon=True)
