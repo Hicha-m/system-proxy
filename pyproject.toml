@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "system-proxy"
+version = "0.1.0"
+description = "Unified, provenance-aware catalog for public proxy sources"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+system-proxy = "system_proxy.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
