@@ -27,11 +27,12 @@ Le produit doit unifier la **découverte des sources, la collecte, la vérificat
 
 - [Plan de projet, architecture candidate et roadmap](docs/PROJECT_PLAN.md)
 - [Registre d'évaluation des dépôts et veille](docs/RESEARCH.md)
+- [Sources supplémentaires et matrice de chevauchement](docs/SOURCES_AND_OVERLAPS.md)
 - [Journal de décisions et questions ouvertes](docs/DECISIONS.md)
 
 ## Prochaine étape
 
-**Phase 1 : audit comparatif** des trois dépôts. Produire une matrice vérifiée dans le code (pas uniquement d'après les README), confirmer les licences et les dépendances, puis proposer les décisions d'intégration.
+**Phase 1 : audit comparatif** des trois dépôts et des nouvelles sources documentées dans [SOURCES_AND_OVERLAPS.md](docs/SOURCES_AND_OVERLAPS.md). Produire une matrice vérifiée dans le code (pas uniquement d'après les README), confirmer les licences et les dépendances, puis proposer les décisions d'intégration.
 
 **Hors du périmètre actuel :** implémentation, déploiement, exploitation de proxies sur Internet et promesse de performances. Toute fonctionnalité non validée reste une hypothèse.
 
