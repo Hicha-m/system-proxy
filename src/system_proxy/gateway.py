@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import hmac
+import math
 import os
 import sqlite3
 import select as multiplex
@@ -128,7 +129,8 @@ def relay(left: socket.socket, right: socket.socket,
     active = set(ends)
     until = time.monotonic() + lifetime
     for s in ends:
-        s.settimeout(None)
+        # A stalled destination cannot block sendall forever.
+        s.settimeout(5)
     while active and time.monotonic() < until:
         ready, _, _ = multiplex.select(list(active), [], [], min(1, max(0.0, until-time.monotonic())))
         for origin in ready:
@@ -142,72 +144,66 @@ def relay(left: socket.socket, right: socket.socket,
                     other.shutdown(socket.SHUT_WR)
                 continue
             remaining[origin] -= len(chunk)
+            other.settimeout(min(5.0, max(0.1, until - time.monotonic())))
             other.sendall(chunk)
 
 
 class GatewayHandler(socketserver.BaseRequestHandler):
     def handle(self):
         server: Gateway = self.server
-        # Refuse rather than queue excessive socket handlers.
-        if not server.capacity.acquire(blocking=False):
-            self._reply(503)
-            return
-        try:
-            self.request.settimeout(10)
-            packet = bytearray()
-            while b"\r\n\r\n" not in packet:
-                piece = self.request.recv(min(1024, MAX_HEADER + 1 - len(packet)))
-                if not piece or len(packet) >= MAX_HEADER:
-                    self._reply(400)
-                    return
-                packet.extend(piece)
-            raw_header, _, trailing = bytes(packet).partition(b"\r\n\r\n")
-            lines = raw_header.split(b"\r\n")
-            try:
-                method, address, version = lines[0].decode("ascii").split(" ")
-                if method != "CONNECT" or version != "HTTP/1.1":
-                    self._reply(405)
-                    return
-                host, _ = authority(address)
-                if host not in server.allowed_domains:
-                    self._reply(403)
-                    return
-                # No request body or pipelined pre-TLS data allowed.
-                if trailing:
-                    self._reply(400)
-                    return
-                if server.token is not None:
-                    credentials = [
-                        line.split(b":", 1)[1].strip()
-                        for line in lines[1:]
-                        if line.lower().startswith(b"proxy-authorization:")
-                    ]
-                    expected = ("Bearer " + server.token).encode()
-                    if len(credentials) != 1 or not hmac.compare_digest(credentials[0], expected):
-                        self._reply(407, b"Proxy-Authenticate: Bearer\r\n")
-                        return
-            except (ValueError, UnicodeDecodeError):
+        self.request.settimeout(10)
+        packet = bytearray()
+        while b"\r\n\r\n" not in packet:
+            piece = self.request.recv(min(1024, MAX_HEADER + 1 - len(packet)))
+            if not piece or len(packet) >= MAX_HEADER:
                 self._reply(400)
                 return
-            try:
-                remote, state = server.open_verified(host)
-            except (sqlite3.Error, OSError, ValueError):
-                # Database access is mandatory: never fall back to raw lists.
-                self._reply(503)
+            packet.extend(piece)
+        raw_header, _, trailing = bytes(packet).partition(b"\r\n\r\n")
+        lines = raw_header.split(b"\r\n")
+        try:
+            method, address, version = lines[0].decode("ascii").split(" ")
+            if method != "CONNECT" or version != "HTTP/1.1":
+                self._reply(405)
                 return
-            if remote is None:
-                self._reply(503 if state == "empty" else 502)
+            host, _ = authority(address)
+            if host not in server.allowed_domains:
+                self._reply(403)
                 return
-            # Retry is finished before replying 200. After this line, the
-            # client's TLS stream is opaque and cannot be safely replayed.
-            with remote:
-                try:
-                    self.request.sendall(b"HTTP/1.1 200 Connection Established\r\n\r\n")
-                    relay(self.request, remote, lifetime=server.max_tunnel_seconds)
-                except (OSError, TimeoutError, ConnectionError):
+            # No request body or pipelined pre-TLS data allowed.
+            if trailing:
+                self._reply(400)
+                return
+            if server.token is not None:
+                credentials = [
+                    line.split(b":", 1)[1].strip()
+                    for line in lines[1:]
+                    if line.lower().startswith(b"proxy-authorization:")
+                ]
+                expected = ("Bearer " + server.token).encode()
+                if len(credentials) != 1 or not hmac.compare_digest(credentials[0], expected):
+                    self._reply(407, b"Proxy-Authenticate: Bearer\r\n")
                     return
-        finally:
-            server.capacity.release()
+        except (ValueError, UnicodeDecodeError):
+            self._reply(400)
+            return
+        try:
+            remote, state = server.open_verified(host)
+        except (sqlite3.Error, OSError, ValueError):
+            # Database access is mandatory: never fall back to raw lists.
+            self._reply(503)
+            return
+        if remote is None:
+            self._reply(503 if state == "empty" else 502)
+            return
+        # Retry is finished before replying 200. After this line, the
+        # client's TLS stream is opaque and cannot be safely replayed.
+        with remote:
+            try:
+                self.request.sendall(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+                relay(self.request, remote, lifetime=server.max_tunnel_seconds)
+            except (OSError, TimeoutError, ConnectionError):
+                return
 
     def _reply(self, code: int, headers: bytes = b""):
         messages = {400: b"Bad Request",403: b"Forbidden",405: b"Method Not Allowed",
@@ -232,6 +228,8 @@ class Gateway(socketserver.ThreadingMixIn, socketserver.TCPServer):
             raise ValueError("Unsafe listener or time limits")
         if not 0 < timeout <= 30 or not 1 <= freshness_seconds <= 2_592_000:
             raise ValueError("Unsafe validation limits")
+        if not isinstance(min_score, (float, int)) or not math.isfinite(min_score) or not 0 <= min_score <= 100:
+            raise ValueError("Invalid minimum score")
         if protocol not in {"http", "socks4", "socks5"}:
             raise ValueError("Unknown upstream protocol")
         if not 1 <= max_attempts <= 5 or not 1 <= cooldown_seconds <= 3600:
@@ -257,6 +255,28 @@ class Gateway(socketserver.ThreadingMixIn, socketserver.TCPServer):
         # Always loopback; never trust a caller-supplied bind address.
         super().__init__(("127.0.0.1", port), GatewayHandler)
 
+
+    def process_request(self, request: socket.socket, client_address):
+        """Gate BEFORE spawning a handler thread (important on small hosts)."""
+        if not self.capacity.acquire(blocking=False):
+            with contextlib.suppress(OSError):
+                request.sendall(
+                    b"HTTP/1.1 503 Service Unavailable\r\n"
+                    b"Content-Length: 0\r\nConnection: close\r\n\r\n"
+                )
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except BaseException:
+            self.capacity.release()
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self.capacity.release()
 
     def _rotation_offset(self, host: str, size: int) -> int:
         """Round-robin across currently eligible, non-cooling endpoints."""
