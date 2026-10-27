@@ -1,6 +1,6 @@
 # system-proxy
 
-> **Statut : collecte, vérification HTTP/SOCKS4a/SOCKS5, sélection et passerelle locale HTTPS CONNECT. Rotation avancée encore à développer.**
+> **Statut : collecte, vérification HTTP/SOCKS4a/SOCKS5, scores globaux/par destination et passerelle HTTPS CONNECT locale avec rotation par tunnel, tentatives limitées et audit SQLite.**
 
 **system-proxy** vise à proposer **une application unique de gestion de proxies**, réutilisable par plusieurs logiciels (Python, JobSpy, Playwright, etc.) via des interfaces stables.
 
@@ -47,7 +47,7 @@ system-proxy-check --db proxy-history.sqlite3 --report-only
 - Effectue un test HTTPS avec **certificat TLS valide** et contenu attendu via chaque proxy HTTP, après avoir vérifié que la cible est accessible directement.
 - Enregistre les résultats, les horodatages et les provenances dans SQLite.
 - Produit `proxy-report.json` avec score de fiabilité et résultats par source.
-- **SOCKS4/SOCKS5 et HTTPS-proxy ne sont pas encore vérifiés**, afin de ne pas déclarer leur statut sur la base de tests incomplets.
+- **HTTP CONNECT, SOCKS4a et SOCKS5 NO-AUTH sont vérifiés localement** vers une destination HTTPS fixe. Le protocole de connexion TLS au proxy (HTTPS-proxy) n'est pas encore couvert.
 
 Voir [docs/LOCAL_VERIFICATION.md](docs/LOCAL_VERIFICATION.md).
 
@@ -62,7 +62,7 @@ system-proxy-domain --db proxy-history.sqlite3 record \
 system-proxy-domain --db proxy-history.sqlite3 report --domain example.com
 ```
 
-Les statuts HTTP 403/429 ne prouvent pas une panne générale du proxy. La notation par destination est séparée du score global. **Les requêtes et les domaines ne sont jamais automatiquement testés par cette commande.** Voir [docs/DESTINATION_HEALTH.md](docs/DESTINATION_HEALTH.md). Les proxies **ne sont pas vérifiés localement** ; la rotation et les intégrations Webshare / API de scraping arrivent dans des phases ultérieures.
+Les statuts HTTP 403/429 ne prouvent pas une panne générale du proxy. La notation par destination est séparée du score global. **Les requêtes et les domaines ne sont jamais automatiquement testés par cette commande.** Voir [docs/DESTINATION_HEALTH.md](docs/DESTINATION_HEALTH.md). Les offres Webshare / API de scraping sont encore des intégrations futures.
 
 Voir [fonctionnement, limites et prochains travaux](docs/COLLECTOR_MVP.md).
 
@@ -81,7 +81,7 @@ system-proxy-select --db proxy-history.sqlite3 --protocol socks5
 system-proxy-select --db proxy-history.sqlite3 --protocol socks5 --domain example.com
 ```
 
-Les contrôles SOCKS prennent en charge SOCKS4a et SOCKS5 sans authentification, et **vérifient le certificat TLS** du site fixe `example.com`. La commande de sélection ne fait **aucune requête**, échoue sans résultats suffisamment récents, et ne fournit pas encore de passerelle HTTP/SOCKS à tes applications.
+Les contrôles SOCKS prennent en charge SOCKS4a et SOCKS5 sans authentification, et **vérifient le certificat TLS** du site fixe `example.com`. La commande de sélection ne fait **aucune requête**, échoue sans résultats suffisamment récents ; la passerelle locale ci-dessous peut exploiter sa liste de candidats vérifiés.
 
 Voir [la documentation de la sélection et des contrôles SOCKS](docs/SOCKS_AND_SELECTION.md).
 
@@ -98,9 +98,16 @@ system-proxy-gateway --db proxy-history.sqlite3 --protocol http \
 # SYSTEM_PROXY_GATEWAY_TOKEN (voir documentation).
 ```
 
-La passerelle sélectionne un proxy vérifié pour chaque **nouveau tunnel CONNECT**. Elle écoute exclusivement sur `127.0.0.1`, impose une liste de domaines autorisés, et ne peut pas lire les codes HTTP à l'intérieur du tunnel HTTPS.
+La passerelle fait tourner les proxies vérifiés **à chaque nouveau tunnel CONNECT** et essaye un autre candidat uniquement en cas d'échec de connexion transitoire **avant** d'accepter le tunnel (trois tentatives par défaut, au plus cinq). Les refus explicites de l'upstream ne déclenchent aucun changement automatique. Les candidats en échec sont mis temporairement de côté **par domaine**, et les résultats CONNECT sont enregistrés indépendamment dans SQLite. Elle écoute exclusivement sur `127.0.0.1`, impose des domaines autorisés, et ne peut pas lire les codes HTTP à l'intérieur du tunnel HTTPS.
 
 Voir [docs/LOCAL_GATEWAY.md](docs/LOCAL_GATEWAY.md).
+
+```bash
+# Rapport des connexions upstream, sans réseau :
+system-proxy-gateway-stats --db proxy-history.sqlite3 --domain example.com
+```
+
+La politique de reprises, ses limites et les précautions sont documentées dans [docs/FAILOVER_AND_AUDIT.md](docs/FAILOVER_AND_AUDIT.md).
 
 ## Documentation
 
@@ -113,12 +120,11 @@ Voir [docs/LOCAL_GATEWAY.md](docs/LOCAL_GATEWAY.md).
 - [Historique et score par destination](docs/DESTINATION_HEALTH.md)
 - [Tests SOCKS4a/SOCKS5 et sélection prudente](docs/SOCKS_AND_SELECTION.md)
 - [Passerelle HTTPS CONNECT locale et restrictions](docs/LOCAL_GATEWAY.md)
-- [Comparatif des sources et doublons](docs/SOURCES_AND_OVERLAPS.md)
-
+- [Rotation CONNECT, reprises limitées et audit SQLite](docs/FAILOVER_AND_AUDIT.md)
 ## Prochaine étape
 
-**Phase 1 : audit comparatif** des trois dépôts et des nouvelles sources documentées dans [SOURCES_AND_OVERLAPS.md](docs/SOURCES_AND_OVERLAPS.md). Produire une matrice vérifiée dans le code (pas uniquement d'après les README), confirmer les licences et les dépendances, puis proposer les décisions d'intégration.
+Réaliser des **mesures réseau réelles contrôlées** sur un petit lot de proxies publics depuis la machine de test et un comparatif du rendement marginal des sources. Ajouter un plafond de stockage, une politique de rétention SQLite, et un connecteur applicatif instrumenté (codes de réponses observés par le client) pour exploiter les scores par destination sans déchiffrer HTTPS.
 
-**Hors du périmètre de ce premier incrément :** passerelle de rotation, validation réseau, déploiement public et promesse de performances. Toute fonctionnalité non mesurée reste une hypothèse.
+**Non disponible pour le moment :** API de service publique, intégration Webshare/IPRoyal/GeoNode payant, HTTPS-proxy authentifié, requêtes HTTP en clair, rotation au milieu d'une session TLS ou certification de fiabilité des proxies.
 
 _Documentation initiale : 27 octobre 2026._
