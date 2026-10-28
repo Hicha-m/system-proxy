@@ -24,6 +24,8 @@ jobs:
         run: bash ci/test.sh
       - name: Offline build smoke (read-only source)
         run: bash ci/build.sh
+      - name: Validate MCP script syntax (no network)
+        run: bash -n ci/test.sh ci/build.sh ci/network.sh
       - name: CLI smoke tests (no network)
         run: |
           python -m system_proxy --list-sources
