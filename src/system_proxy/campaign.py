@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .collect import Collector, http_fetch, normalize_endpoint
-from .destination import DestinationHealth, Observation
+from .destination import DestinationHealth, Observation, wilson_lower
 from .history import History
 from .verification import verify_candidates
 
@@ -98,6 +98,15 @@ def run(*, db: Path, max_checks: int = 10000, timeout: float = 2.0,
     db.parent.mkdir(parents=True, exist_ok=True)
     with History(db) as history:
         health = DestinationHealth(history)
+        history.conn.executescript("""
+            CREATE TABLE IF NOT EXISTS url_checks (
+                ip TEXT NOT NULL, port INTEGER NOT NULL, protocol TEXT NOT NULL,
+                target_url TEXT NOT NULL, outcome TEXT NOT NULL,
+                latency_ms REAL, checked_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_url_checks
+                ON url_checks(target_url,protocol,ip,port);
+        """)
         inventory = collect_inventory(history, max_candidates=25000, fetch=fetch)
         checked = Counter()
         attempts = 0
@@ -136,21 +145,26 @@ def run(*, db: Path, max_checks: int = 10000, timeout: float = 2.0,
         # per-record report which is intended only for small interactive lists.
         rankings = {}
         for proto in ("http", "socks4", "socks5"):
-            rankings[proto] = [
+            candidates = [
                 {"ip": ip, "port": port, "successes": good, "failures": bad,
-                 "last_latency_ms": latency}
+                 "last_latency_ms": latency,
+                 "score": wilson_lower(good, bad)}
                 for ip,port,good,bad,latency in history.conn.execute("""
                   SELECT ip,port,
                     SUM(CASE WHEN outcome='success' THEN 1 ELSE 0 END) AS good,
                     SUM(CASE WHEN outcome='proxy_error' THEN 1 ELSE 0 END) AS bad,
                     MIN(CASE WHEN outcome='success' THEN latency_ms ELSE NULL END)
-                  FROM destination_observations
-                  WHERE domain=? AND protocol=?
+                  FROM url_checks
+                  WHERE target_url=? AND protocol=?
                   GROUP BY ip,port
                   HAVING good > 0
-                  ORDER BY good DESC, bad ASC, 5 ASC LIMIT 20
-                """,(DOMAIN,proto))
+                """,(TARGET,proto))
             ]
+            candidates.sort(key=lambda item: (
+                -(item["score"] or 0), -item["successes"],
+                item["last_latency_ms"] if item["last_latency_ms"] is not None else float("inf")
+            ))
+            rankings[proto] = candidates[:20]
         return {
             "destination": TARGET,
             "inventory": inventory,
@@ -171,6 +185,15 @@ def _execute_batch(history, health, entries, timeout, workers, totals, verifier)
     history.add_checks(checks)
     for check in checks:
         totals[check.status] += 1
+        with history.conn:
+            history.conn.execute(
+                "INSERT INTO url_checks(ip,port,protocol,target_url,outcome,latency_ms,checked_at) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (check.ip,check.port,check.protocol,TARGET,
+                 "success" if check.status=="passed" else
+                 "unknown" if check.status=="unavailable" else "proxy_error",
+                 check.latency_ms,check.checked_at)
+            )
         health.record(Observation(
             ip=check.ip,port=check.port,protocol=check.protocol,domain=DOMAIN,
             outcome=("success" if check.status=="passed" else
