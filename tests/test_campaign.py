@@ -42,6 +42,7 @@ class CampaignTests(unittest.TestCase):
                        verifier=verify,runtime_seconds=20)
             self.assertEqual(result["checks"]["passed"],1)
             self.assertEqual(result["ranking"]["http"][0]["successes"],1)
+            self.assertGreater(result["ranking"]["http"][0]["score"],0)
             again=run(db=db,max_checks=10,fetch=fake_fetch,
                       verifier=verify,runtime_seconds=20)
             self.assertEqual(again["attempts_this_run"],0)
@@ -57,6 +58,25 @@ class CampaignTests(unittest.TestCase):
                                  http.client.BadStatusLine("<html>")))
         self.assertEqual(result.status,"failed")
         self.assertEqual(result.reason,"BadStatusLine")
+
+    def test_large_public_feed_filters_private_credentials_and_types(self):
+        def fake_fetch(url, timeout, limit):
+            if "proxifly" in url:
+                return (b"socks5://8.8.8.8:1080\n"
+                        b"socks4://9.9.9.9:1080\n"
+                        b"http://1.1.1.1:8080\n"
+                        b"ftp://4.4.4.4:21\n"
+                        b"http://10.0.0.1:80\n"
+                        b"http://name:secret@8.8.4.4:80\n")
+            if "hproxy" in url:
+                return b"[]"
+            return b'{"data":[]}'
+        with History(":memory:") as h:
+            result=collect_inventory(h,max_candidates=10000,fetch=fake_fetch)
+            self.assertEqual(result["unique_endpoints"],3)
+            self.assertEqual(len(h.candidates("socks5")),1)
+            self.assertEqual(len(h.candidates("socks4")),1)
+            self.assertEqual(len(h.candidates("http")),1)
 
     def test_invalid_limits(self):
         with self.assertRaises(ValueError):
