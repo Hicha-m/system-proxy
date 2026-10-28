@@ -9,7 +9,7 @@ import unittest
 from types import SimpleNamespace
 
 from system_proxy.network_diagnostics import diagnose_direct_https, _error
-from system_proxy.network_cli import run_diagnostic
+from system_proxy.network_cli import run_diagnostic, _safe_source_reason
 from system_proxy.verification import Check, direct_baseline_details
 
 
@@ -163,6 +163,38 @@ class IndependentTests(unittest.TestCase):
         self.assertEqual(report["proxy_results"]["http"]["status"],"failed")
         self.assertTrue(report["tests_completed"])
         self.assertFalse(report["live_proxy_available"])
+
+    def test_fallback_source_and_redacted_error(self):
+        calls=[]
+        def collect(ids):
+            calls.extend(ids)
+            if ids == ["geonode"]:
+                return SimpleNamespace(
+                    to_dict=lambda: {"proxies":[]},
+                    sources={"geonode":{"errors":["HTTPError: HTTP Error 403: secret/token"]}},
+                )
+            return self.report()
+        def verify(entries, **kwargs):
+            return [Check("8.8.8.8",8080,"http","passed",40,"ok","2026-10-28T12:00:00+00:00")]
+        outcome=run_diagnostic(
+            direct_check=lambda timeout: {"status":"failed","reason":"tls_handshake_failed",
+                                          "failed_stage":"tls","steps":[]},
+            collect=collect,verify=verify,
+        )
+        self.assertEqual(calls,["geonode","hproxy"])
+        self.assertEqual(outcome["collection"]["sources"][0]["reason"],"source_http_forbidden")
+        self.assertEqual(outcome["collection"]["sources"][1]["status"],"ok")
+        self.assertEqual(outcome["status"],"ok")
+        self.assertTrue(outcome["live_proxy_available"])
+        self.assertNotIn("secret",json.dumps(outcome))
+
+    def test_source_codes_are_allowlisted(self):
+        self.assertEqual(_safe_source_reason(["HTTPError: HTTP Error 429: API token=123"]),
+                         "source_rate_limited")
+        self.assertEqual(_safe_source_reason(["ValueError: sensitive payload"]),
+                         "source_invalid_or_oversized_response")
+        self.assertEqual(_safe_source_reason(["URLError: Authorization: ABC"]),
+                         "source_network_error")
 
     def test_collection_failure_is_independent_and_sanitized(self):
         def broken(ids):
