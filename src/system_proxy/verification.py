@@ -50,14 +50,15 @@ def probe_http(ip: str, port: int, timeout: float, *, target: str = "https://exa
     return True, "verified_https_content"
 
 
+def direct_baseline_details(timeout: float) -> dict:
+    """Report DNS/TCP/TLS/HTTP stages without exposing raw network errors."""
+    from .network_diagnostics import diagnose_direct_https
+    return diagnose_direct_https(timeout)
+
+
 def direct_baseline(timeout: float) -> bool:
-    """Fail closed when the expected destination is unreachable without proxy."""
-    opener = build_opener(ProxyHandler({}), HTTPSHandler(context=ssl.create_default_context()))
-    try:
-        with opener.open("https://example.com/", timeout=timeout) as response:
-            return response.status == 200 and b"Example Domain" in response.read(128_000)
-    except (OSError, URLError, HTTPError):
-        return False
+    """Legacy boolean API for the global checker (fail closed)."""
+    return direct_baseline_details(timeout)["status"] == "ok"
 
 
 Probe = Callable[[str, int, float], tuple[bool, str]]
