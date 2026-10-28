@@ -7,6 +7,7 @@ Only public IP literals are accepted. SOCKS4a and SOCKS5 NO-AUTH supported.
 from __future__ import annotations
 
 import concurrent.futures
+import http.client
 import ipaddress
 import ssl
 import time
@@ -79,7 +80,8 @@ def check_one(ip: str, port: int, protocol: str, timeout: float,
             ok, reason = socks_probe(ip, port, timeout, protocol)
         elapsed = round((time.monotonic() - start) * 1000, 2)
         return Check(ip, port, protocol, "passed" if ok else "failed", elapsed, reason[:100], stamp)
-    except (OSError, ValueError, TimeoutError, HTTPError, URLError, ssl.SSLError) as exc:
+    except (OSError, ValueError, TimeoutError, HTTPError, URLError, ssl.SSLError,
+            http.client.HTTPException) as exc:
         return Check(ip, port, protocol, "failed", None, type(exc).__name__, stamp)
 
 
