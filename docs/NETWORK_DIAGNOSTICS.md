@@ -26,9 +26,13 @@ L'objet JSON indique `direct.status`, `direct.failed_stage`, `direct.reason`, `d
 
 Un échec de la connexion directe ne stoppe plus automatiquement le diagnostic.
 
-Le job collecte une page GeoNode de 50 candidats, puis teste au maximum 4 HTTP, 2 SOCKS5 et 2 SOCKS4a, avec deux workers, trois secondes par tentative et **toujours `https://example.com/` via chaque proxy**. Les proxys ne sont marqués `passed` que si leur propre tunnel TLS et la réponse HTTPS de référence sont vérifiés. La validation directe n'est pas une condition préalable aux tests indépendants des proxies.
+Le job tente d'abord une page GeoNode de 50 candidats. Si cette source échoue ou ne fournit aucun candidat valide, il essaie une seule fois la liste HProxy (plafond de 8 Mo et 30 000 lignes), puis conserve au maximum 50 candidats. Il teste ensuite au maximum 4 HTTP, 2 SOCKS5 et 2 SOCKS4a, avec deux workers, trois secondes par tentative et **toujours `https://example.com/` via chaque proxy**. Les proxys ne sont marqués `passed` que si leur propre tunnel TLS et la réponse HTTPS de référence sont vérifiés. La validation directe n'est pas une condition préalable aux tests indépendants des proxies.
+
+Le tableau `collection.sources` fournit pour chaque source un résultat assaini : par exemple `source_http_forbidden`, `source_rate_limited`, `source_network_error` ou `source_invalid_or_oversized_response`. Aucune exception brute ni URL avec authentifiants n'est émise.
 
 La sortie `proxy_results` résume les résultats par protocole sans IP, mot de passe ou en-tête HTTP. `status=failed` sur un échantillon signifie uniquement que les candidats **testés** ont échoué, pas que tous les proxies d'un fournisseur sont inutilisables.
+
+Si HTTPS direct fonctionne mais qu'aucun proxy n'a pu être testé, `network_profile=inconclusive` : l'accès direct est explicitement `ok` dans `direct`, mais la campagne proxy reste incomplète.
 
 Le champ `tests_completed` précise si des vérifications de proxies ont été réalisées. `live_proxy_available` est une preuve positive limitée à l'échantillon. Le programme retourne **0 lorsque des contrôles ont effectivement eu lieu**, même s'ils échouent tous ; **2** si aucun contrôle n'a pu être effectué. Le statut réseau reste indépendant du code de sortie : le JSON contient les conclusions.
 
