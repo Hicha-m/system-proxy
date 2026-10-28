@@ -6,6 +6,7 @@ Never print URLs with credentials, raw exceptions, individual IPs, or headers.
 from __future__ import annotations
 
 import json
+import re
 import tempfile
 from collections import Counter
 from pathlib import Path
@@ -17,35 +18,78 @@ from .verification import direct_baseline_details, verify_candidates
 LIMITS = (("http", 4), ("socks5", 2), ("socks4", 2))
 
 
+def _safe_source_reason(errors: list[str]) -> str:
+    """Classify provider errors without ever emitting raw URLs or secrets."""
+    if not errors:
+        return "no_candidates"
+    error = errors[0]
+    match = re.match(r"^HTTPError:\s*HTTP Error (\d{3})\b", error)
+    if match:
+        code = int(match.group(1))
+        return ("source_http_forbidden" if code in (401, 403)
+                else "source_rate_limited" if code == 429
+                else "source_http_error")
+    if error.startswith(("TimeoutError:", "socket.timeout:")):
+        return "source_timeout"
+    if error.startswith(("URLError:", "ConnectionError:", "gaierror:")):
+        return "source_network_error"
+    if error.startswith(("SSLError:", "SSLCertVerificationError:")):
+        return "source_tls_error"
+    if error.startswith("ValueError:"):
+        return "source_invalid_or_oversized_response"
+    return "source_unavailable"
+
+
 def run_diagnostic(*, direct_check=direct_baseline_details,
                    collect=None, verify=verify_candidates) -> dict:
-    # A failed direct connection must not prevent collection or proxy testing.
+    # The direct reference check is diagnostic, NOT a prerequisite to the
+    # independent proxy checks, which still verify example.com over TLS.
     try:
         direct = direct_check(3.0)
     except Exception:
         direct = {"status": "inconclusive", "failed_stage": None,
                   "reason": "diagnostic_exception", "steps": []}
 
-    try:
-        report = (collect or Collector(timeout=5.0, max_pages=1, page_size=50,
-                                       max_bytes=1_000_000, max_rows=100).collect)(["geonode"])
-        candidates = report.to_dict()["proxies"]
-        source = report.sources.get("geonode", {})
-        collection_errors = len(source.get("errors", []))
-        collection = {
-            "status": "ok" if candidates and not collection_errors else "inconclusive",
-            "reason": ("collected" if candidates and not collection_errors
-                       else "source_response_unavailable" if collection_errors
-                       else "no_candidates"),
-            "candidate_count": len(candidates),
-            "error_count": collection_errors,
-        }
-    except (OSError, ValueError, TypeError, KeyError):
-        candidates = []
-        collection = {
-            "status": "inconclusive", "reason": "source_collection_error",
-            "candidate_count": 0, "error_count": 1,
-        }
+    sources = []
+    candidates = []
+    # GeoNode normally returns a small page; HProxy is a bounded fallback
+    # if GeoNode is unreachable or supplies no valid proxy candidates.
+    for source_id in ("geonode", "hproxy"):
+        try:
+            if collect is None:
+                collector = Collector(
+                    timeout=5.0, max_pages=1, page_size=50,
+                    max_bytes=1_000_000 if source_id == "geonode" else 8_000_000,
+                    max_rows=100 if source_id == "geonode" else 30_000,
+                )
+                report = collector.collect([source_id])
+            else:
+                report = collect([source_id])
+            source = report.sources.get(source_id, {})
+            errors = source.get("errors", [])
+            fetched = report.to_dict()["proxies"]
+            usable = bool(fetched) and not errors
+            sources.append({
+                "source": source_id,
+                "status": "ok" if usable else "inconclusive",
+                "reason": "collected" if usable else _safe_source_reason(errors),
+                "candidate_count": len(fetched),
+            })
+            if usable:
+                candidates = fetched[:50]
+                break
+        except (OSError, ValueError, TypeError, KeyError):
+            sources.append({
+                "source": source_id, "status": "inconclusive",
+                "reason": "source_collection_error", "candidate_count": 0,
+            })
+
+    collection = {
+        "status": "ok" if candidates else "inconclusive",
+        "reason": "collected" if candidates else "no_usable_source",
+        "candidate_count": len(candidates),
+        "sources": sources,
+    }
 
     results = {}
     total_checked = 0
@@ -61,9 +105,6 @@ def run_diagnostic(*, direct_check=direct_baseline_details,
                         "checked": 0, "passed": 0, "failed": 0, "unavailable": 0,
                     }
                     continue
-                # The fixed example.com reference remains mandatory INSIDE
-                # each proxy probe. Do not disable certificate verification.
-                # No direct baseline gate (it may fail while proxies work).
                 checks = verify(entries, max_candidates=limit,
                                 timeout=3.0, workers=2, baseline=False)
                 history.add_checks(checks)
@@ -82,17 +123,15 @@ def run_diagnostic(*, direct_check=direct_baseline_details,
                 }
 
     proxy_pass = any(x["passed"] > 0 for x in results.values())
-    if direct["status"] == "ok" or proxy_pass:
-        overall = "ok"
-        reason = "https_verified"
-    elif direct["status"] == "blocked":
-        # The direct test may be blocked by policy, but this does NOT prove
-        # all proxy egress is prohibited.
-        overall = "inconclusive"
-        reason = "direct_blocked_proxy_not_verified"
+    if proxy_pass:
+        overall, reason = "ok", "proxy_https_verified"
+    elif not total_checked:
+        overall, reason = "inconclusive", "no_proxy_checks_completed"
+    elif direct["status"] == "ok":
+        overall, reason = "ok", "direct_https_verified_proxy_sample_not_verified"
     else:
-        overall = "inconclusive"
-        reason = "no_verified_https_path_in_sample"
+        # Direct blockage is not proof that all upstream proxy egress is blocked.
+        overall, reason = "inconclusive", "no_verified_https_path_in_sample"
     return {
         "schema_version": 2,
         "network_profile": overall,
@@ -104,7 +143,7 @@ def run_diagnostic(*, direct_check=direct_baseline_details,
         "live_proxy_available": proxy_pass,
         "tested_endpoints": total_checked,
         "tests_completed": total_checked > 0,
-        "scope": "geonode_public_proxy_sample_fixed_https_example_com_only",
+        "scope": "bounded_public_proxy_sources_fixed_https_example_com_only",
     }
 
 
