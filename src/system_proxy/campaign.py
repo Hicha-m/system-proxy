@@ -122,9 +122,9 @@ def run(*, db: Path, max_checks: int = 10000, timeout: float = 2.0,
                     break
                 if not refresh:
                     recent = history.conn.execute(
-                        "SELECT 1 FROM destination_observations "
-                        "WHERE ip=? AND port=? AND protocol=? AND domain=? LIMIT 1",
-                        (ip,port,proto,DOMAIN)
+                        "SELECT 1 FROM url_checks "
+                        "WHERE ip=? AND port=? AND protocol=? AND target_url=? LIMIT 1",
+                        (ip,port,proto,TARGET)
                     ).fetchone()
                     if recent:
                         checked["skipped_previously_checked"] += 1
