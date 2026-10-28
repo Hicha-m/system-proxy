@@ -78,6 +78,21 @@ class CampaignTests(unittest.TestCase):
             self.assertEqual(len(h.candidates("socks4")),1)
             self.assertEqual(len(h.candidates("http")),1)
 
+    def test_policy_denial_is_not_proxy_failure(self):
+        from system_proxy.verification import check_one
+        def denied(*args):
+            raise PermissionError("policy denied")
+        result=check_one("8.8.8.8",8080,"http",1.0,probe=denied)
+        self.assertEqual(result.status,"unavailable")
+
+    def test_unexpected_endpoint_exception_is_isolated(self):
+        from system_proxy.verification import check_one
+        def bad(*args):
+            raise RuntimeError("secrets must not be logged")
+        result=check_one("8.8.8.8",8080,"http",1.0,probe=bad)
+        self.assertEqual(result.status,"unavailable")
+        self.assertEqual(result.reason,"unexpected_checker_exception")
+
     def test_invalid_limits(self):
         with self.assertRaises(ValueError):
             run(db=Path("unused.db"),max_checks=10001)
