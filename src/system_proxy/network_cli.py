@@ -17,7 +17,7 @@ from .source_diagnostics import diagnose_source
 from .urllib_diagnostics import compare_urllib
 from .verification import direct_baseline_details, verify_candidates
 
-LIMITS = (("http", 4), ("socks5", 2), ("socks4", 2))
+LIMITS = (("http", 12), ("socks5", 6), ("socks4", 6))
 
 
 def _safe_source_reason(errors: list[str]) -> str:
@@ -62,7 +62,7 @@ def run_diagnostic(*, direct_check=direct_baseline_details,
         try:
             if collect is None:
                 collector = Collector(
-                    timeout=5.0, max_pages=1, page_size=50,
+                    timeout=5.0, max_pages=1, page_size=100,
                     max_bytes=1_000_000 if source_id == "geonode" else 8_000_000,
                     max_rows=100 if source_id == "geonode" else 30_000,
                 )
@@ -80,7 +80,7 @@ def run_diagnostic(*, direct_check=direct_baseline_details,
                 "candidate_count": len(fetched),
             })
             if usable:
-                candidates = fetched[:50]
+                candidates = fetched[:100]
                 break
         except (OSError, ValueError, TypeError, KeyError):
             sources.append({
@@ -128,7 +128,7 @@ def run_diagnostic(*, direct_check=direct_baseline_details,
                     }
                     continue
                 checks = verify(entries, max_candidates=limit,
-                                timeout=3.0, workers=2, baseline=False)
+                                timeout=3.0, workers=4, baseline=False)
                 history.add_checks(checks)
                 totals = Counter(c.status for c in checks)
                 tested = len(checks)
