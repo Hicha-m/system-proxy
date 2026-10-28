@@ -1,0 +1,26 @@
+# Remote Dev MCP CI manifest — safe defaults.
+# Network diagnostics are opt-in and never part of quick/full.
+version: 1
+
+jobs:
+  test:
+    script: ci/test.sh
+    timeout: 45
+
+  build:
+    script: ci/build.sh
+    timeout: 45
+
+  network:
+    script: ci/network.sh
+    timeout: 45
+
+pipelines:
+  quick:
+    jobs: [test, build]
+
+  full:
+    jobs: [test, build]
+
+  live:
+    jobs: [network]
