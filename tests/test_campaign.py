@@ -1,5 +1,6 @@
 """Campaign orchestration tests use only offline fixtures."""
 import json
+import http.client
 import tempfile
 import unittest
 from pathlib import Path
@@ -45,6 +46,17 @@ class CampaignTests(unittest.TestCase):
                       verifier=verify,runtime_seconds=20)
             self.assertEqual(again["attempts_this_run"],0)
             self.assertEqual(len(called),1)
+
+    def test_bad_connect_http_response_does_not_abort_batch(self):
+        from system_proxy.verification import check_one
+        from unittest.mock import patch
+        with patch("system_proxy.verification.probe_http",
+                   side_effect=http.client.BadStatusLine("<html>")):
+            result=check_one("8.8.8.8",8080,"http",1.0,
+                             probe=lambda *a: (_ for _ in ()).throw(
+                                 http.client.BadStatusLine("<html>")))
+        self.assertEqual(result.status,"failed")
+        self.assertEqual(result.reason,"BadStatusLine")
 
     def test_invalid_limits(self):
         with self.assertRaises(ValueError):
