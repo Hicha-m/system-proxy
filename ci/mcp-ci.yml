@@ -21,6 +21,10 @@ jobs:
     timeout: 900
     network: true
 
+  campaign-report:
+    script: ci/campaign-report.sh
+    timeout: 60
+
 pipelines:
   quick: [test, build]
 
@@ -29,3 +33,5 @@ pipelines:
   live: [network]
 
   campaign: [campaign]
+
+  campaign-report: [campaign-report]
