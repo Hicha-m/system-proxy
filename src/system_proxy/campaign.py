@@ -18,7 +18,15 @@ from .destination import DestinationHealth, Observation, wilson_lower
 from .history import History
 from .verification import verify_candidates
 
-PUBLIC_LIST = "https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/all/data.txt"
+PUBLIC_FEEDS = (
+    ("speedx-http", "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt", "http"),
+    ("speedx-socks4", "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks4.txt", "socks4"),
+    ("speedx-socks5", "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt", "socks5"),
+    ("monosans-http", "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt", "http"),
+    ("monosans-socks4", "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks4.txt", "socks4"),
+    ("monosans-socks5", "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt", "socks5"),
+    ("proxifly", "https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/all/data.txt", None),
+)
 TARGET = "https://example.com/"
 DOMAIN = "example.com"
 
@@ -54,33 +62,43 @@ def collect_inventory(h: History, *, max_candidates: int = 25000,
                 break
         if len(inventory) >= max_candidates:
             break
-    if len(inventory) < max_candidates:
-        # This is a fixed, public HTTPS dataset, NOT a dynamically supplied URL.
-        # Treat every line as untrusted; never accept private IPs or credentials.
+    # Fixed public HTTPS sources only; downloaded rows are untrusted data.
+    for name,feed_url,declared_protocol in PUBLIC_FEEDS:
+        if len(inventory) >= max_candidates:
+            break
         try:
-            raw = (fetch or http_fetch)(PUBLIC_LIST, 8.0, 8_000_000)
+            raw = (fetch or http_fetch)(feed_url, 8.0, 8_000_000)
             accepted = 0
             for line in raw.decode("utf-8-sig").splitlines()[:150000]:
                 try:
-                    ip,port,proto = normalize_endpoint(line)
+                    value = line.strip()
+                    if not value or value.startswith("#"):
+                        continue
+                    if declared_protocol:
+                        # Plain text feeds are IP:port only; no credentials or
+                        # alternative embedded schemes may override feed type.
+                        if "://" in value or "@" in value:
+                            continue
+                        value = declared_protocol + "://" + value
+                    ip,port,proto = normalize_endpoint(value)
                     if proto not in {"http","socks4","socks5"}:
                         continue
                     key = ip,port
                     item = inventory.get(key)
                     if item is None:
                         inventory[key] = {"ip":ip,"port":port,
-                                          "protocols":[proto],"sources":["proxifly"]}
+                                          "protocols":[proto],"sources":[name]}
                         accepted += 1
                     else:
                         item["protocols"] = sorted(set(item["protocols"]) | {proto})
-                        item["sources"] = sorted(set(item["sources"]) | {"proxifly"})
+                        item["sources"] = sorted(set(item["sources"]) | {name})
                     if len(inventory) >= max_candidates:
                         break
                 except (ValueError,TypeError,OverflowError):
                     continue
-            sources["proxifly"] = {"candidate_count":accepted,"errors":0}
+            sources[name] = {"candidate_count":accepted,"errors":0}
         except (OSError,ValueError,UnicodeError):
-            sources["proxifly"] = {"candidate_count":0,"errors":1}
+            sources[name] = {"candidate_count":0,"errors":1}
     h.import_candidates(list(inventory.values()))
     return {"unique_endpoints": len(inventory), "sources": sources,
             "target": max_candidates, "target_reached": len(inventory) >= max_candidates}
