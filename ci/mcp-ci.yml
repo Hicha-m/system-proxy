@@ -1,5 +1,4 @@
-# Remote Dev MCP CI manifest — safe defaults.
-# Network diagnostics are opt-in and never part of quick/full.
+# Remote Dev MCP CI manifest — network campaigns are opt-in.
 version: 1
 
 jobs:
@@ -16,22 +15,23 @@ jobs:
     timeout: 45
     network: true
 
+  # Owner-approved persistent execution runs on the Codespace host, not in
+  # the temporary 900-second job environment. Maximum authorized: 21600 s.
   campaign:
     script: ci/campaign.sh
-    timeout: 900
+    execution: persistent
+    timeout: 21600
     network: true
 
+  # Read the same persistent SQLite database as the campaign.
   campaign-report:
     script: ci/campaign-report.sh
+    execution: persistent
     timeout: 60
 
 pipelines:
   quick: [test, build]
-
   full: [test, build]
-
   live: [network]
-
   campaign: [campaign]
-
   campaign-report: [campaign-report]
