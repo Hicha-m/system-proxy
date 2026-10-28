@@ -42,6 +42,10 @@ class CampaignTests(unittest.TestCase):
                        verifier=verify,runtime_seconds=20)
             self.assertEqual(result["checks"]["passed"],1)
             self.assertEqual(result["ranking"]["http"][0]["successes"],1)
+            from system_proxy.campaign_report import load_report
+            read_only=load_report(db)
+            self.assertEqual(read_only["checked"],1)
+            self.assertEqual(read_only["ranked"]["http"][0]["successes"],1)
             self.assertGreater(result["ranking"]["http"][0]["score"],0)
             again=run(db=db,max_checks=10,fetch=fake_fetch,
                       verifier=verify,runtime_seconds=20)
