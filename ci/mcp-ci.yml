@@ -14,13 +14,11 @@ jobs:
   network:
     script: ci/network.sh
     timeout: 45
+    network: true
 
 pipelines:
-  quick:
-    jobs: [test, build]
+  quick: [test, build]
 
-  full:
-    jobs: [test, build]
+  full: [test, build]
 
-  live:
-    jobs: [network]
+  live: [network]
