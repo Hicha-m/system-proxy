@@ -13,6 +13,7 @@ from pathlib import Path
 
 from .collect import Collector
 from .history import History
+from .source_diagnostics import diagnose_source
 from .verification import direct_baseline_details, verify_candidates
 
 LIMITS = (("http", 4), ("socks5", 2), ("socks4", 2))
@@ -41,7 +42,8 @@ def _safe_source_reason(errors: list[str]) -> str:
 
 
 def run_diagnostic(*, direct_check=direct_baseline_details,
-                   collect=None, verify=verify_candidates) -> dict:
+                   collect=None, verify=verify_candidates,
+                   source_check=diagnose_source) -> dict:
     # The direct reference check is diagnostic, NOT a prerequisite to the
     # independent proxy checks, which still verify example.com over TLS.
     try:
@@ -83,6 +85,19 @@ def run_diagnostic(*, direct_check=direct_baseline_details,
                 "source": source_id, "status": "inconclusive",
                 "reason": "source_collection_error", "candidate_count": 0,
             })
+
+    # Probe the exact failing canonical provider URL separately, without
+    # fetching its potentially large response or displaying sensitive errors.
+    for source in sources:
+        if source["status"] != "ok":
+            try:
+                source["https_diagnostic"] = source_check(source["source"], timeout=3.0)
+            except Exception:
+                source["https_diagnostic"] = {
+                    "source": source["source"], "status": "inconclusive",
+                    "failed_stage": None, "reason": "diagnostic_exception",
+                    "steps": [],
+                }
 
     collection = {
         "status": "ok" if candidates else "inconclusive",
