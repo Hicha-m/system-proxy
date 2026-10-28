@@ -84,8 +84,27 @@ def http_fetch(url: str, timeout: float = 12, max_bytes: int = 8_000_000) -> byt
         raise ValueError("Public-source fetching requires HTTPS")
     opener = build_opener(ProxyHandler({}), _NoRedirects())
     request = Request(url, headers={"User-Agent": "system-proxy/0.1", "Accept": "application/json"})
-    with opener.open(request, timeout=timeout) as response:
-        data = response.read(max_bytes + 1)
+    try:
+        with opener.open(request, timeout=timeout) as response:
+            data = response.read(max_bytes + 1)
+    except OSError:
+        # The sandbox's approved TCP egress broker may not support urllib's
+        # default hostname dial path. Retry only exact canonical provider URLs
+        # with a public-IPv4-only dial, preserving TLS SNI and certificate
+        # validation. Never allow this fallback for arbitrary URLs.
+        if url not in {src.page_url(1, 50) for src in SOURCES.values()} and not any(
+            url == src.page_url(page, size)
+            for src in SOURCES.values()
+            for page in range(1, 21)
+            for size in (50, 100, 500)
+        ):
+            raise
+        from .urllib_diagnostics import IPv4HTTPSHandler
+        import ssl
+        retry = build_opener(ProxyHandler({}), _NoRedirects(),
+                             IPv4HTTPSHandler(context=ssl.create_default_context()))
+        with retry.open(request, timeout=timeout) as response:
+            data = response.read(max_bytes + 1)
     if len(data) > max_bytes:
         raise ValueError("Source response exceeds size limit")
     return data
