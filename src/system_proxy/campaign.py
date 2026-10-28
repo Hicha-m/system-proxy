@@ -13,19 +13,20 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .collect import Collector
+from .collect import Collector, http_fetch, normalize_endpoint
 from .destination import DestinationHealth, Observation
 from .history import History
 from .verification import verify_candidates
 
+PUBLIC_LIST = "https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/all/data.txt"
 TARGET = "https://example.com/"
 DOMAIN = "example.com"
 
 
-def collect_inventory(h: History, *, max_candidates: int = 10000,
+def collect_inventory(h: History, *, max_candidates: int = 25000,
                       fetch=None) -> dict:
     """Collect multiple pages; persist deduplicated public IP endpoints."""
-    if not 1 <= max_candidates <= 10000:
+    if not 1 <= max_candidates <= 50000:
         raise ValueError("Invalid inventory limit")
     inventory: dict[tuple[str, int], dict] = {}
     sources = {}
@@ -53,6 +54,33 @@ def collect_inventory(h: History, *, max_candidates: int = 10000,
                 break
         if len(inventory) >= max_candidates:
             break
+    if len(inventory) < max_candidates:
+        # This is a fixed, public HTTPS dataset, NOT a dynamically supplied URL.
+        # Treat every line as untrusted; never accept private IPs or credentials.
+        try:
+            raw = (fetch or http_fetch)(PUBLIC_LIST, 8.0, 8_000_000)
+            accepted = 0
+            for line in raw.decode("utf-8-sig").splitlines()[:150000]:
+                try:
+                    ip,port,proto = normalize_endpoint(line)
+                    if proto not in {"http","socks4","socks5"}:
+                        continue
+                    key = ip,port
+                    item = inventory.get(key)
+                    if item is None:
+                        inventory[key] = {"ip":ip,"port":port,
+                                          "protocols":[proto],"sources":["proxifly"]}
+                        accepted += 1
+                    else:
+                        item["protocols"] = sorted(set(item["protocols"]) | {proto})
+                        item["sources"] = sorted(set(item["sources"]) | {"proxifly"})
+                    if len(inventory) >= max_candidates:
+                        break
+                except (ValueError,TypeError,OverflowError):
+                    continue
+            sources["proxifly"] = {"candidate_count":accepted,"errors":0}
+        except (OSError,ValueError,UnicodeError):
+            sources["proxifly"] = {"candidate_count":0,"errors":1}
     h.import_candidates(list(inventory.values()))
     return {"unique_endpoints": len(inventory), "sources": sources,
             "target": max_candidates, "target_reached": len(inventory) >= max_candidates}
@@ -70,7 +98,7 @@ def run(*, db: Path, max_checks: int = 10000, timeout: float = 2.0,
     db.parent.mkdir(parents=True, exist_ok=True)
     with History(db) as history:
         health = DestinationHealth(history)
-        inventory = collect_inventory(history, max_candidates=10000, fetch=fetch)
+        inventory = collect_inventory(history, max_candidates=25000, fetch=fetch)
         checked = Counter()
         attempts = 0
         # Iterate over all known candidate protocols, not just the first page.
