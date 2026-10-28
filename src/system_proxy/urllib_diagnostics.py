@@ -95,4 +95,12 @@ def compare_urllib(source: str, *, timeout: float = 4,
                 }
         except (OSError, ValueError, HTTPError, URLError) as exc:
             results[mode] = {"status": "inconclusive", "reason": _reason(exc)}
+        except Exception as exc:
+            # The broker may raise non-OSError transport exceptions; expose
+            # only the exception class from a strict controlled mapping.
+            category = ({"RuntimeError": "runtime_error",
+                         "TypeError": "transport_type_error",
+                         "AttributeError": "transport_attribute_error"}
+                        .get(type(exc).__name__, "unexpected_transport_error"))
+            results[mode] = {"status": "inconclusive", "reason": category}
     return {"source": source, "paths": results}
