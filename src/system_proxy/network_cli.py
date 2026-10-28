@@ -94,15 +94,17 @@ def run_diagnostic(*, direct_check=direct_baseline_details,
         if source["status"] != "ok":
             try:
                 source["https_diagnostic"] = source_check(source["source"], timeout=3.0)
-                source["urllib_diagnostic"] = urllib_check(source["source"], timeout=3.0)
             except Exception:
-                source["urllib_diagnostic"] = {"source":source["source"],
-                    "paths":{},"reason":"diagnostic_exception"}
                 source["https_diagnostic"] = {
                     "source": source["source"], "status": "inconclusive",
                     "failed_stage": None, "reason": "diagnostic_exception",
                     "steps": [],
                 }
+            try:
+                source["urllib_diagnostic"] = urllib_check(source["source"], timeout=3.0)
+            except Exception:
+                source["urllib_diagnostic"] = {"source":source["source"],
+                    "paths":{},"reason":"diagnostic_exception"}
 
     collection = {
         "status": "ok" if candidates else "inconclusive",
