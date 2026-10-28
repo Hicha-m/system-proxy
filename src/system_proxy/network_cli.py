@@ -14,6 +14,7 @@ from pathlib import Path
 from .collect import Collector
 from .history import History
 from .source_diagnostics import diagnose_source
+from .urllib_diagnostics import compare_urllib
 from .verification import direct_baseline_details, verify_candidates
 
 LIMITS = (("http", 4), ("socks5", 2), ("socks4", 2))
@@ -43,7 +44,8 @@ def _safe_source_reason(errors: list[str]) -> str:
 
 def run_diagnostic(*, direct_check=direct_baseline_details,
                    collect=None, verify=verify_candidates,
-                   source_check=diagnose_source) -> dict:
+                   source_check=diagnose_source,
+                   urllib_check=compare_urllib) -> dict:
     # The direct reference check is diagnostic, NOT a prerequisite to the
     # independent proxy checks, which still verify example.com over TLS.
     try:
@@ -92,7 +94,10 @@ def run_diagnostic(*, direct_check=direct_baseline_details,
         if source["status"] != "ok":
             try:
                 source["https_diagnostic"] = source_check(source["source"], timeout=3.0)
+                source["urllib_diagnostic"] = urllib_check(source["source"], timeout=3.0)
             except Exception:
+                source["urllib_diagnostic"] = {"source":source["source"],
+                    "paths":{},"reason":"diagnostic_exception"}
                 source["https_diagnostic"] = {
                     "source": source["source"], "status": "inconclusive",
                     "failed_stage": None, "reason": "diagnostic_exception",
