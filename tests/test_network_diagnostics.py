@@ -148,8 +148,8 @@ class IndependentTests(unittest.TestCase):
         self.assertTrue(report["live_proxy_available"])
         self.assertEqual(report["tested_endpoints"],1)
         self.assertFalse(calls[0]["baseline"])
-        self.assertEqual(calls[0]["workers"],2)
-        self.assertEqual(calls[0]["max_candidates"],4)
+        self.assertEqual(calls[0]["workers"],4)
+        self.assertEqual(calls[0]["max_candidates"],12)
 
     def test_sample_failure_not_systemwide_block(self):
         def verify(entries, **kwargs):
