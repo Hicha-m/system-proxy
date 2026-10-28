@@ -110,7 +110,7 @@ def run(*, db: Path, max_checks: int = 10000, timeout: float = 2.0,
         fetch=None, verifier=verify_candidates) -> dict:
     if not (1 <= max_checks <= 10000 and 0 < timeout <= 5 and
             1 <= workers <= 16 and 1 <= batch_size <= 500 and
-            1 <= runtime_seconds <= 840):
+            1 <= runtime_seconds <= 21000):
         raise ValueError("Campaign exceeds approved limits")
     started = time.monotonic()
     db.parent.mkdir(parents=True, exist_ok=True)
@@ -126,7 +126,7 @@ def run(*, db: Path, max_checks: int = 10000, timeout: float = 2.0,
                 ON url_checks(target_url,protocol,ip,port);
         """)
         inventory = collect_inventory(history, max_candidates=25000, fetch=fetch)
-        print(json.dumps({"event":"inventory","unique_endpoints":inventory["unique_endpoints"],
+        print("MCP_PROGRESS " + json.dumps({"event":"inventory","unique_endpoints":inventory["unique_endpoints"],
                           "sources":inventory["sources"]},sort_keys=True),flush=True)
         checked = Counter()
         attempts = 0
@@ -204,7 +204,7 @@ def _execute_batch(history, health, entries, timeout, workers, totals, verifier)
     # Run only for example.com; all existing probes verify TLS and known content.
     history.add_checks(checks)
     outcomes = Counter(c.status for c in checks)
-    print(json.dumps({"event":"batch","checked":len(checks),
+    print("MCP_PROGRESS " + json.dumps({"event":"batch","checked":len(checks),
                       "passed":outcomes["passed"],"failed":outcomes["failed"],
                       "unavailable":outcomes["unavailable"]},sort_keys=True),flush=True)
     for check in checks:
@@ -235,7 +235,7 @@ def main(argv=None) -> int:
     p.add_argument("--timeout",type=float,default=2)
     p.add_argument("--workers",type=int,default=12)
     p.add_argument("--batch-size",type=int,default=120)
-    p.add_argument("--runtime-seconds",type=int,default=780)
+    p.add_argument("--runtime-seconds",type=int,default=20400)
     p.add_argument("--refresh",action="store_true")
     args=p.parse_args(argv)
     if args.target_url != TARGET:
