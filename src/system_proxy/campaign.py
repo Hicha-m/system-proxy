@@ -126,6 +126,8 @@ def run(*, db: Path, max_checks: int = 10000, timeout: float = 2.0,
                 ON url_checks(target_url,protocol,ip,port);
         """)
         inventory = collect_inventory(history, max_candidates=25000, fetch=fetch)
+        print(json.dumps({"event":"inventory","unique_endpoints":inventory["unique_endpoints"],
+                          "sources":inventory["sources"]},sort_keys=True),flush=True)
         checked = Counter()
         attempts = 0
         # Iterate over all known candidate protocols, not just the first page.
@@ -201,6 +203,10 @@ def _execute_batch(history, health, entries, timeout, workers, totals, verifier)
                       max_candidates=len(entries), baseline=False)
     # Run only for example.com; all existing probes verify TLS and known content.
     history.add_checks(checks)
+    outcomes = Counter(c.status for c in checks)
+    print(json.dumps({"event":"batch","checked":len(checks),
+                      "passed":outcomes["passed"],"failed":outcomes["failed"],
+                      "unavailable":outcomes["unavailable"]},sort_keys=True),flush=True)
     for check in checks:
         totals[check.status] += 1
         with history.conn:
