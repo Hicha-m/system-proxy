@@ -9,7 +9,6 @@ import errno
 import ipaddress
 import socket
 import ssl
-from urllib.parse import urlsplit
 
 HOST = "example.com"
 PORT = 443
@@ -19,14 +18,15 @@ STATES = frozenset({"ok", "failed", "blocked", "inconclusive"})
 
 def _error(exc: BaseException, stage: str) -> tuple[str, str]:
     """Whitelist categories only; never log raw exceptions or network addresses."""
-    if isinstance(exc, PermissionError) or (
-        isinstance(exc, OSError) and exc.errno in {errno.EPERM, errno.EACCES}
-    ):
-        return "blocked", "permission_denied"
+    # SSL errors can have errno=1; this does not mean OS EPERM.
     if isinstance(exc, ssl.SSLCertVerificationError):
         return "failed", "certificate_verification_failed"
     if isinstance(exc, ssl.SSLError):
         return "failed", "tls_handshake_failed"
+    if isinstance(exc, PermissionError) or (
+        isinstance(exc, OSError) and exc.errno in {errno.EPERM, errno.EACCES}
+    ):
+        return "blocked", "permission_denied"
     if isinstance(exc, (socket.timeout, TimeoutError)):
         return "inconclusive", "timeout"
     if isinstance(exc, socket.gaierror):
