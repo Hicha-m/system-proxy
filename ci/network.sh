@@ -2,7 +2,7 @@
 # Explicit opt-in bounded real-network diagnostic for Remote Dev MCP.
 # The MCP administrator must independently allow the "network" profile.
 set -euo pipefail
-ROOT="$(cd -- "$(dirname -- "\${BASH_SOURCE[0]}")/.." && pwd -P)"
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$ROOT"
 export PYTHONPATH="$ROOT/src"
 export PYTHONDONTWRITEBYTECODE=1
