@@ -93,6 +93,8 @@ def _copy_consistent(source: Path, target: Path):
 
 def prepare(data_dir: Path, *, legacy: Path | None = None) -> str:
     """Idempotent startup: use existing DB, restore snapshot or migrate legacy."""
+    if data_dir.is_symlink():
+        raise StorageError("Refusing a symlinked storage directory")
     data_dir = data_dir.resolve()
     db = data_dir / "campaign.sqlite3"
     with _locked(data_dir):
@@ -177,7 +179,7 @@ def main(argv=None):
     parser.add_argument("--data-dir", type=Path)
     parser.add_argument("--legacy", type=Path)
     args = parser.parse_args(argv)
-    root = (args.data_dir or data_directory()).resolve()
+    root = args.data_dir or data_directory()
     try:
         if args.action == "prepare":
             legacy = args.legacy or (Path.home() / ".local/share/system-proxy/campaign.sqlite3")
