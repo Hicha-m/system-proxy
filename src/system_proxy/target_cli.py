@@ -12,6 +12,7 @@ from pathlib import Path
 
 from .history import History
 from .multi_target import OUTCOMES, TargetObservation, TargetStore
+from .project_export import _atomic_write
 from .target_profiles import load_profiles
 
 TEST_NET = (("192.0.2.10", 8080), ("198.51.100.20", 3128),
@@ -83,15 +84,17 @@ def main(argv=None) -> int:
     sub = p.add_subparsers(dest="action", required=True)
     sub.add_parser("profiles")
     sub.add_parser("demo")
-    for action in ("ranking", "stats", "record"):
+    for action in ("ranking", "stats", "record", "export"):
         subparser = sub.add_parser(action)
         subparser.add_argument("--project", required=True)
         subparser.add_argument("--target", required=True)
-        if action in {"ranking", "record"}:
+        if action in {"ranking", "record", "export"}:
             subparser.add_argument("--protocol", choices=("http", "socks4", "socks5"),
                                    default="http")
-        if action == "ranking":
+        if action in {"ranking", "export"}:
             subparser.add_argument("--limit", type=int, default=20)
+        if action == "export":
+            subparser.add_argument("--output-dir", type=Path)
         if action == "record":
             subparser.add_argument("--ip", required=True)
             subparser.add_argument("--port", type=int, required=True)
@@ -142,6 +145,21 @@ def main(argv=None) -> int:
                        "target_id": profile.target_id, "network_requests": 0}
             elif args.action == "ranking":
                 out = store.ranking(profile, protocol=args.protocol, limit=args.limit)
+            elif args.action == "export":
+                report = store.ranking(profile, protocol=args.protocol, limit=args.limit)
+                selected = [r for r in report["ranking"] if r["eligible"]]
+                output = (args.output_dir or args.db.parent / "target-exports") / profile.project_id / profile.target_id
+                document = {"project_id": profile.project_id, "target_id": profile.target_id,
+                            "protocol": args.protocol, "mode": "passive",
+                            "warning": "Client-reported success for this target only; not a universal proxy guarantee",
+                            "policy": report["policy"], "proxies": selected}
+                _atomic_write(output / f"{args.protocol}.json", json.dumps(document, indent=2, sort_keys=True) + "\n")
+                _atomic_write(output / f"{args.protocol}.txt", "".join(
+                    f"{args.protocol}://{r['ip']}:{r['port']}\n" for r in selected
+                ))
+                out = {"status": "exported", "project_id": profile.project_id,
+                       "target_id": profile.target_id, "count": len(selected),
+                       "protocol": args.protocol, "network_requests": 0}
             else:
                 out = store.stats(profile)
     print(json.dumps(out, sort_keys=True, indent=2), flush=True)
