@@ -49,6 +49,30 @@ with sqlite3.connect(uri,uri=True,timeout=10) as conn:
             {"protocol":p,"status":s,"reason":r,"count":n}
             for (p,s,r),n in sorted(safe.items(),key=lambda x:(-x[1],x[0]))
         ]
+    # Legacy exception strings may contain URLs; classify but do not print.
+    if "checks" in tables:
+        legacy=Counter()
+        for reason,n in conn.execute("""
+            SELECT reason,COUNT(*) FROM checks WHERE checked_at>=?
+            GROUP BY reason
+        """,(cutoff,)):
+            raw=(reason or "").casefold()
+            if any(k in raw for k in ("timeout","timed out","time out")):
+                category="timeout"
+            elif any(k in raw for k in ("refused","reset","broken pipe","unreachable","no route")):
+                category="connection_refused_or_unreachable"
+            elif any(k in raw for k in ("ssl","tls","certificate","handshake")):
+                category="tls_or_handshake"
+            elif any(k in raw for k in ("dns","name resolution","gaierror","getaddrinfo")):
+                category="dns_resolution"
+            elif any(k in raw for k in ("403","407","429","forbidden","denied","rate limit")):
+                category="access_restriction"
+            elif any(k in raw for k in ("invalid","response","http","socks","protocol")):
+                category="protocol_or_response"
+            else:
+                category="unclassified"
+            legacy[category]+=n
+        out["historical_reason_families"]=dict(sorted(legacy.items()))
     if "url_checks" in tables:
         out["url_checks_by_protocol_outcome"]=[
             {"protocol":proto if proto in ("http","https","socks4","socks5") else "other",
