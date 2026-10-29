@@ -19,6 +19,8 @@ system-proxy-gateway-stats = "system_proxy.gateway_history:main"
 system-proxy-targets = "system_proxy.target_cli:main"
 system-proxy-d1 = "system_proxy.d1_storage:main"
 system-proxy-retention = "system_proxy.retention:main"
+system-proxy-observe = "system_proxy.observability:main"
+system-proxy-benchmark = "system_proxy.benchmark:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
