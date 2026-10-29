@@ -37,7 +37,7 @@ def plan_checks(conn, *, previous_keys: set[tuple[str, int, str]],
     latest = {}
     for ip, port, protocol, outcome, stamp in conn.execute(
         "SELECT ip,port,protocol,outcome,checked_at FROM url_checks "
-        "WHERE target_url=? ORDER BY rowid", (TARGET,)
+        "WHERE target_url=? ORDER BY checked_at,rowid", (TARGET,)
     ):
         latest[(ip, port, protocol)] = (outcome, stamp)
 
