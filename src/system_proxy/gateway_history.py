@@ -84,7 +84,7 @@ class GatewayAttempts:
         rows = self.db.execute("""
             SELECT ip,port,outcome FROM gateway_attempts
             WHERE domain=? AND protocol=? AND attempted_at>=?
-            ORDER BY id DESC
+            ORDER BY attempted_at DESC,id DESC
         """, (hostname, protocol, threshold))
         # Only the latest attempt for each endpoint is decisive:
         # a subsequent successful tunnel removes an earlier cooldown.
