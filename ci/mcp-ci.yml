@@ -1,26 +1,24 @@
 version: 1
 jobs:
-  test: {script: ci/test.sh}
-  build: {script: ci/build.sh}
+  test: {script: ci/test.sh, timeout: 45}
+  build: {script: ci/build.sh, timeout: 45}
   campaign: {script: ci/campaign.sh, execution: persistent, timeout: 21600, network: true}
   daily: {script: ci/daily.sh, execution: persistent, timeout: 21600, network: true}
   d1-bootstrap: {script: ci/d1-bootstrap.sh, execution: persistent, timeout: 300, network: true}
-  storage-status: {script: ci/storage-status.sh, execution: persistent}
-  rebuild-smoke: {script: ci/rebuild-smoke.sh}
-  daily-status: {script: ci/daily-status.sh, execution: persistent}
-  d1-preview: {script: ci/d1-preview.sh, execution: persistent}
-  p2-benchmark: {script: ci/p2-benchmark.sh}
-  p2-observe: {script: ci/p2-observe.sh, execution: persistent}
-  p2-failures: {script: ci/p2-failure-diagnostics.sh, execution: persistent}
+  storage-status: {script: ci/storage-status.sh, execution: persistent, timeout: 60}
+  rebuild-smoke: {script: ci/rebuild-smoke.sh, timeout: 45}
+  daily-status: {script: ci/daily-status.sh, execution: persistent, timeout: 60}
+  d1-preview: {script: ci/d1-preview.sh, execution: persistent, timeout: 300}
+  p2-benchmark: {script: ci/p2-benchmark.sh, timeout: 45}
+  p2-observe: {script: ci/p2-observe.sh, execution: persistent, timeout: 60}
+  p2-failures: {script: ci/p2-failure-diagnostics.sh, execution: persistent, timeout: 60}
   lot1-live: {script: ci/lot1-live.sh, execution: persistent, timeout: 180, network: true}
-  lot3-ops: {script: ci/lot3-ops.sh, execution: persistent}
 pipelines:
   quick: [test, build]
   p2: [test, build, p2-benchmark]
   p2-observe: [p2-observe]
   p2-failures: [p2-failures]
   lot1-live: [lot1-live]
-  lot3-ops: [lot3-ops]
   campaign: [campaign]
   daily: [daily]
   d1-bootstrap: [d1-bootstrap]
