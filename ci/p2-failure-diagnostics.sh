@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "$0")/.." && pwd -P)"
 cd "$ROOT"
 export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH="$ROOT/src"
 source "$ROOT/ci/storage.sh"
 storage_prepare
 python3 - <<'PY'
