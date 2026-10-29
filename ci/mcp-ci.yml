@@ -1,52 +1,62 @@
+# Remote Dev MCP CI manifest — network campaigns are opt-in.
 version: 1
+
 jobs:
   test:
     script: ci/test.sh
     timeout: 45
+
   build:
     script: ci/build.sh
     timeout: 45
+
   network:
     script: ci/network.sh
     timeout: 45
     network: true
+
+  # Public example ranking is offline: no real destination probes.
   public-demo:
     script: ci/public-demo.sh
     timeout: 45
+
+  # Cloudflare D1 schema and CLI tests are networkless.
   d1-smoke:
     script: ci/d1-smoke.sh
     timeout: 45
+
+  # Owner-approved persistent execution runs on the Codespace host, not in
+  # the temporary 900-second job environment. Maximum authorized: 21600 s.
   campaign:
     script: ci/campaign.sh
     execution: persistent
     timeout: 21600
     network: true
+
+  # Daily source refresh + reliability retests, sharing Codespace SQLite.
   daily:
     script: ci/daily.sh
     execution: persistent
     timeout: 21600
     network: true
+
   daily-status:
     script: ci/daily-status.sh
     execution: persistent
     timeout: 60
+
+  # Offline, read-only Cloudflare D1 synchronization preview.
   d1-preview:
     script: ci/d1-preview.sh
     execution: persistent
     timeout: 300
-  d1-sync:
-    script: ci/codespace-d1-sync.sh
-    execution: persistent
-    timeout: 900
-    network: true
-  d1-reference-seed:
-    script: ci/d1-reference-seed.sh
-    execution: persistent
-    timeout: 300
+
+  # Read the same persistent SQLite database as the campaign.
   campaign-report:
     script: ci/campaign-report.sh
     execution: persistent
     timeout: 60
+
 pipelines:
   quick: [test, build]
   full: [test, build]
@@ -54,10 +64,7 @@ pipelines:
   campaign: [campaign]
   campaign-report: [campaign-report]
   daily: [daily]
-  daily-d1: [daily, d1-sync]
-  d1-sync: [d1-sync]
   daily-status: [daily-status]
   public-demo: [public-demo]
   d1-smoke: [d1-smoke]
   d1-preview: [d1-preview]
-  d1-reference-seed: [d1-reference-seed]
