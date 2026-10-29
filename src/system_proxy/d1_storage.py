@@ -198,20 +198,37 @@ def plan_reference_sync(sqlite_path: Path, *, max_endpoints: int = 5000,
             raise ValueError("Not a recognized campaign database")
         seen = now.isoformat()
         selected = []
-        for ip, port, proto in conn.execute(
-            "SELECT ip,port,protocol FROM endpoints "
-            "WHERE protocol IN ('http','socks4','socks5') "
-            "ORDER BY ip,port,protocol LIMIT ?", (max_endpoints,)
-        ):
+        if _has_table(conn, "provenance"):
+            # Prefer recently seen sources under a bounded first-sync budget,
+            # while preserving their actual first/last sighting timestamps.
+            sql = (
+                "SELECT e.ip,e.port,e.protocol,"
+                " COALESCE((SELECT MIN(p.first_seen) FROM provenance p "
+                "WHERE p.ip=e.ip AND p.port=e.port AND p.protocol=e.protocol),?),"
+                " COALESCE((SELECT MAX(p.last_seen) FROM provenance p "
+                "WHERE p.ip=e.ip AND p.port=e.port AND p.protocol=e.protocol),?) "
+                "FROM endpoints e "
+                "WHERE e.protocol IN ('http','socks4','socks5') "
+                "ORDER BY 5 DESC,e.ip,e.port,e.protocol LIMIT ?"
+            )
+            cursor = conn.execute(sql, (seen,seen,max_endpoints))
+        else:
+            cursor = (
+                (*row,seen,seen) for row in conn.execute(
+                    "SELECT ip,port,protocol FROM endpoints "
+                    "WHERE protocol IN ('http','socks4','socks5') "
+                    "ORDER BY ip,port,protocol LIMIT ?", (max_endpoints,)
+                )
+            )
+        for ip, port, proto, first_seen, last_seen in cursor:
             if _valid_proxy(ip, port, proto):
-                selected.append((ip, port, proto, seen, seen))
+                selected.append((ip,port,proto,first_seen,last_seen))
         selected_keys = {(r[0],r[1],r[2]) for r in selected}
         sources = []
         if _has_table(conn, "provenance"):
             for ip, port, proto, source, first, last in conn.execute(
                 "SELECT ip,port,protocol,source,first_seen,last_seen "
-                "FROM provenance ORDER BY ip,port,protocol,source "
-                "LIMIT ?", (max_sources * 2,)
+                "FROM provenance ORDER BY last_seen DESC,ip,port,protocol,source"
             ):
                 if ((ip,port,proto) in selected_keys
                         and isinstance(source, str) and 1 <= len(source) <= 80):
