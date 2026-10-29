@@ -79,7 +79,7 @@ def export_projects(conn: sqlite3.Connection, output_dir: Path, *,
                    (SELECT recent.outcome FROM url_checks recent
                     WHERE recent.ip=c.ip AND recent.port=c.port
                       AND recent.protocol=c.protocol AND recent.target_url=c.target_url
-                    ORDER BY recent.rowid DESC LIMIT 1) last_status,
+                    ORDER BY recent.checked_at DESC,recent.rowid DESC LIMIT 1) last_status,
                    MAX(c.checked_at) last_checked,
                    MIN(CASE WHEN c.outcome='success' THEN c.latency_ms END) latency
             FROM url_checks c
