@@ -16,7 +16,6 @@ jobs:
   lot1-live: {script: ci/lot1-live.sh, execution: persistent, timeout: 180, network: true}
 pipelines:
   quick: [test, build]
-  p2: [test, build, p2-benchmark]
   p2-observe: [p2-observe]
   p2-failures: [p2-failures]
   lot1-live: [lot1-live]
@@ -27,4 +26,3 @@ pipelines:
   rebuild-smoke: [rebuild-smoke]
   daily-status: [daily-status]
   d1-preview: [d1-preview]
-  d1-sync: [d1-sync]
