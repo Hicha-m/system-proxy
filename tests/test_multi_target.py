@@ -164,6 +164,16 @@ class Ranking(unittest.TestCase):
         self.assertLess(after["score"], previous)
         self.assertFalse(after["eligible"])
 
+    def test_late_arriving_old_failure_does_not_override_recent_success(self):
+        for _ in range(3):
+            self.add(self.first, hours=0)
+        self.add(self.first, outcome="proxy_error", status=None,
+                 verified=False, hours=2)
+        ranked = self.store.ranking(self.first)["ranking"][0]
+        self.assertEqual(ranked["latest_outcome"], "success")
+        self.assertTrue(ranked["eligible"])
+        self.assertEqual(ranked["proxy_failures"], 1)
+
     def test_stale_results_are_not_eligible(self):
         for _ in range(4):
             self.add(self.first, hours=48)
