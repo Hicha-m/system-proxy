@@ -34,6 +34,29 @@ sont des phases ultérieures : non déployés ici.**
 
 Voir [la documentation de démonstration multi-destinations](docs/PUBLIC_MULTI_TARGET.md).
 
+## Phase 2 — base Cloudflare D1 persistante
+
+Le schema SQL de production pour Cloudflare D1 est dans
+[database/migrations/0001_init.sql](database/migrations/0001_init.sql).
+Il couvre le catalogue, la provenance des sources, les controles de
+reference, les scores par destination et les statistiques quotidiennes.
+
+La base **system-proxy** a ete initialisee sur Cloudflare D1 (juridiction EU).
+Un test reel d'ecriture/lecture/suppression avec une adresse fictive
+TEST-NET a reussi, sans conserver la fixture.
+
+Pour importer de facon prudente les resultats de reference d'une campagne
+SQLite, la commande `system-proxy-d1` est disponible. Sans `--apply`,
+elle effectue uniquement une previsualisation **hors reseau**. Avec
+`--apply`, elle exige des variables privees Cloudflare et importe
+par lots limites, sans URLs personnelles.
+
+Le stockage D1 ne depend pas du Codespace. **Le deploiement du verificateur
+quotidien sur VPS, les secrets de synchronisation et l'API authentifiee
+restent des etapes ulterieures.**
+
+[Guide D1 : deploiement, quotas, securite, synchronisation et backups](docs/CLOUDFLARE_D1.md).
+
 ## Principes retenus
 
 1. **Un produit, un moteur logique, plusieurs modules internes** : chaque responsabilité possède une interface claire ; éviter les implémentations doublonnées.
