@@ -31,7 +31,7 @@ class ObservabilityTests(unittest.TestCase):
             h.import_candidates([{
                 "ip": "8.8.8.8", "port": 8080,
                 "protocols": ["http"],
-                "sources": ["source-one", "secret-token-marker"],
+                "sources": ["geonode", "secret-token-marker", "unrecognized-project"],
             }])
             h.add_checks([Check(
                 "8.8.8.8", 8080, "http", "failed", None,
@@ -88,12 +88,12 @@ class ObservabilityTests(unittest.TestCase):
         self.assertEqual(report["gateway_outcomes"]["connected"], 1)
         self.assertEqual(report["check_reasons"]["other"], 1)
         self.assertEqual(report["sources"], [
-            {"source": "other", "endpoints": 1},
-            {"source": "source-one", "endpoints": 1},
+            {"source": "other", "endpoints": 2},
+            {"source": "geonode", "endpoints": 1},
         ])
         payload = json.dumps(report)
         html = render_dashboard(report)
-        for secret in ("8.8.8.8", "secret-token", "secret-project",
+        for secret in ("8.8.8.8", "secret-token", "unrecognized-project", "secret-project",
                        "private.example", "secret-unknown-diagnostic"):
             self.assertNotIn(secret, payload)
             self.assertNotIn(secret, html)
