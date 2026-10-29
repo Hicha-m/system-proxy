@@ -7,7 +7,8 @@ from datetime import datetime, timezone
 from system_proxy.field_validation import (
     PROTOCOLS, PERMITTED_PORTS, safe_summary, select_sample, run,
 )
-from system_proxy.verification import Check
+from system_proxy.verification import Check, classify_probe_exception
+from system_proxy.socks import SocksNegotiationError
 
 
 def fake_db():
@@ -70,6 +71,17 @@ class FieldValidationTests(unittest.TestCase):
         self.assertNotIn("8.8.",printed)
         self.assertNotIn("8080",printed)
         self.assertEqual(report["persistence"],"read_only_no_history_changes")
+
+    def test_socks_negotiation_errors_are_classified_without_raw_details(self):
+        for reason in ("socks4_connect_rejected", "socks5_connect_rejected",
+                       "socks5_auth_unavailable"):
+            self.assertEqual(
+                classify_probe_exception(SocksNegotiationError(reason, unavailable=True)),
+                ("unavailable", reason))
+        for reason in ("socks5_malformed_reply", "socks_early_eof"):
+            self.assertEqual(
+                classify_probe_exception(SocksNegotiationError(reason)),
+                ("failed", reason))
 
     def test_safe_failure_codes(self):
         result=safe_summary([
