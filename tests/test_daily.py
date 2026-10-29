@@ -81,6 +81,28 @@ class DailyTests(unittest.TestCase):
             self.assertEqual(selected, [("1.1.1.1",80,"http")])
             self.assertEqual(summary["due_failed"], 1)
 
+    def test_small_daily_budget_covers_all_available_protocols(self):
+        # Historically a limit of three always selected the first HTTP rows.
+        with sqlite3.connect(":memory:") as db:
+            db.executescript("""
+                CREATE TABLE endpoints (ip TEXT,port INT,protocol TEXT);
+                CREATE TABLE url_checks (ip TEXT,port INT,protocol TEXT,
+                    target_url TEXT,outcome TEXT,latency_ms REAL,checked_at TEXT);
+            """)
+            for i in range(15):
+                db.execute("INSERT INTO endpoints VALUES (?,?,?)",
+                           (f"8.8.8.{i+1}",8080,"http"))
+            for proto in ("socks4","socks5"):
+                db.execute("INSERT INTO endpoints VALUES (?,?,?)",
+                           ("1.1.1.1",1080,proto))
+            selected, summary = plan_checks(
+                db, previous_keys=set(), now=datetime.now(timezone.utc),
+                max_checks=3)
+            self.assertEqual({entry[2] for entry in selected},
+                             {"http","socks4","socks5"})
+            self.assertEqual(summary["new_candidates"],17)
+            self.assertEqual(summary["selected"],3)
+
     def test_export_filters_stale_or_failed_and_rejects_wrong_target(self):
         with tempfile.TemporaryDirectory() as root:
             db = sqlite3.connect(":memory:")

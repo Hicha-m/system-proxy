@@ -26,6 +26,25 @@ from .project_export import export_projects
 PROTOCOLS = ("http", "socks4", "socks5")
 
 
+def _interleave_protocols(candidates: list[tuple[str, int, str]]) -> list[tuple[str, int, str]]:
+    """Round-robin candidates within one priority class to avoid HTTP-only caps."""
+    buckets = {protocol: [] for protocol in PROTOCOLS}
+    remainder = []
+    for entry in candidates:
+        if entry[2] in buckets:
+            buckets[entry[2]].append(entry)
+        else:
+            remainder.append(entry)
+    result = []
+    longest = max((len(items) for items in buckets.values()), default=0)
+    for i in range(longest):
+        for protocol in PROTOCOLS:
+            if i < len(buckets[protocol]):
+                result.append(buckets[protocol][i])
+    return result + remainder
+
+
+
 def plan_checks(conn, *, previous_keys: set[tuple[str, int, str]],
                 now: datetime, max_checks: int) -> tuple[list[tuple[str, int, str]], dict]:
     """Prioritize newly discovered proxies and due successful rechecks.
@@ -67,8 +86,10 @@ def plan_checks(conn, *, previous_keys: set[tuple[str, int, str]],
     # Preserve a minimum recheck budget even when sources provide many new IPs.
     reserve = min(len(due_success), max(1, max_checks // 5))
     selected = (
-        due_success[:reserve] + new + unseen +
-        due_success[reserve:] + due_unknown + due_failed
+        _interleave_protocols(due_success[:reserve]) +
+        _interleave_protocols(new) + _interleave_protocols(unseen) +
+        _interleave_protocols(due_success[reserve:]) +
+        _interleave_protocols(due_unknown) + _interleave_protocols(due_failed)
     )[:max_checks]
     return selected, {
         "new_candidates": len(new),
