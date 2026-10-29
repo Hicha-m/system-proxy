@@ -82,6 +82,27 @@ sauvegarde externe chiffree.
 
 [Guide P0 de persistance et de reprise](docs/P0_STORAGE_RECOVERY.md).
 
+## P2 — observabilité, performance et sécurité
+
+Le projet possède un **tableau de bord statique et privé** généré depuis
+SQLite, avec états des campagnes, compteurs par protocole, diagnostics
+d'échec et tendances. Pas de serveur HTTP ouvert ni de scripts tiers.
+
+~~~bash
+system-proxy-observe --days 14
+system-proxy-observe --format html \
+  --output /workspaces/.system-proxy-state/reports/dashboard.html
+system-proxy-benchmark --endpoints 2000 --workers 4 --queries 32
+~~~
+
+Le benchmark emploie une **base synthétique éphémère**, jamais les proxies
+publics. Les fichiers de rapport sont privés (0600), les requêtes SQLite
+sont en lecture seule et les indicateurs n'exposent pas les IP ou les noms
+de domaine. Le pipeline MCP p2 exécute les tests, la compilation et le
+benchmark hors réseau.
+
+Voir [guide P2 : tableau de bord et vérifications](docs/P2_OBSERVABILITY.md).
+
 ## Principes retenus
 
 1. **Un produit, un moteur logique, plusieurs modules internes** : chaque responsabilité possède une interface claire ; éviter les implémentations doublonnées.
