@@ -5,4 +5,6 @@ ROOT="$(cd -- "$(dirname -- "$0")/.." && pwd -P)"
 cd "$ROOT"
 export PYTHONPATH="$ROOT/src"
 export PYTHONDONTWRITEBYTECODE=1
-exec python3 -m system_proxy.observability --days 14 --format json
+python3 -m system_proxy.observability --days 14 --format json
+# Lot 3 operational status is also read-only. One document per JSON line.
+python3 -m system_proxy.ops report
