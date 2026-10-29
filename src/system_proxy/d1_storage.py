@@ -303,12 +303,26 @@ def plan_reference_sync(sqlite_path: Path, *, max_endpoints: int = 5000,
                     stats.append((
                         day,"reference","","",protocol,n,good,bad,0,seen
                     ))
+        runs = []
+        if _has_table(conn, "daily_runs"):
+            for day,started,ended,collected,new,attempted,passed,failed in conn.execute(
+                "SELECT day,started_at,ended_at,collected,new_candidates,"
+                "attempted,passed,failed FROM daily_runs "
+                "ORDER BY day DESC LIMIT 31"
+            ):
+                if isinstance(day, str) and len(day) == 10:
+                    runs.append((
+                        "reference-" + day, started, ended, collected, new,
+                        attempted, passed, failed,
+                        "completed" if ended else "partial"
+                    ))
         return {
             "endpoints":selected,
             "sources":sources,
             "events":events,
             "scores":scores,
             "stats":stats,
+            "runs":runs,
             "source":str(sqlite_path),
             "window_hours":since_hours,
         }
@@ -365,6 +379,22 @@ def apply_reference_sync(client: D1Client, plan: dict) -> dict:
                 "failures=MAX(daily_statistics.failures,excluded.failures), "
                 "updated_at=excluded.updated_at"
             ))
+    _insert(client,"collection_runs",
+            ["run_id","started_at","completed_at","endpoints_seen",
+             "new_endpoints","checks_attempted","checks_passed",
+             "checks_failed","status"],
+            plan["runs"],
+            expressions=["?","?","NULLIF(?,'')","?","?","?","?","?","?"],
+            on_conflict=(
+                "ON CONFLICT(run_id) DO UPDATE SET "
+                "completed_at=COALESCE(excluded.completed_at,collection_runs.completed_at), "
+                "endpoints_seen=MAX(collection_runs.endpoints_seen,excluded.endpoints_seen), "
+                "new_endpoints=MAX(collection_runs.new_endpoints,excluded.new_endpoints), "
+                "checks_attempted=MAX(collection_runs.checks_attempted,excluded.checks_attempted), "
+                "checks_passed=MAX(collection_runs.checks_passed,excluded.checks_passed), "
+                "checks_failed=MAX(collection_runs.checks_failed,excluded.checks_failed), "
+                "status=excluded.status"
+            ))
     return {
         "status":"synced",
         "endpoints":len(plan["endpoints"]),
@@ -372,6 +402,7 @@ def apply_reference_sync(client: D1Client, plan: dict) -> dict:
         "reference_events":len(plan["events"]),
         "ranking_snapshots":len(plan["scores"]),
         "daily_stats_rows":len(plan["stats"]),
+        "daily_runs":len(plan["runs"]),
     }
 
 
@@ -394,7 +425,7 @@ def main(argv=None):
     if not args.apply:
         result={"status":"dry_run","network_requests":0,
                 "counts":{key:len(plan[key]) for key in
-                          ("endpoints","sources","events","scores","stats")}}
+                          ("endpoints","sources","events","scores","stats","runs")}}
     else:
         client=D1Client.from_env()
         result=apply_reference_sync(client,plan)
