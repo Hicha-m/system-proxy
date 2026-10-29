@@ -153,8 +153,11 @@ class DestinationHealth:
               ORDER BY id DESC
             """, (ip,port,proto,hostname)).fetchall()
             success = sum(o[0]=="success" for o in history)
-            fail = sum(o[0] in {"target_denied","rate_limited","challenge","proxy_error","network_error"}
-                       for o in history)
+            # Restrictions describe the target, NOT a broken proxy. Keep them
+            # visible and ineligible, without depressing transport reliability.
+            restrictions = sum(o[0] in {"target_denied","rate_limited","challenge"}
+                               for o in history)
+            fail = sum(o[0] in {"proxy_error","network_error"} for o in history)
             # App success scoring: target denial is a destination outcome;
             # it does NOT change the proxy's global health score.
             latest = history[0] if history else None
@@ -173,8 +176,10 @@ class DestinationHealth:
                 global_ok = (global_status[0]=="passed" and 0 <= global_age <= freshness_seconds)
             output.append({
                 "ip":ip,"port":port,"protocol":proto,"domain":hostname,
-                "observations":len(history),"success":success,"denied_or_failed":fail,
-                "unknown":len(history)-success-fail,
+                "observations":len(history),"success":success,
+                "denied_or_failed":fail+restrictions,
+                "transport_failures":fail,"restrictions":restrictions,
+                "unknown":len(history)-success-fail-restrictions,
                 "destination_score":wilson_lower(success,fail),
                 "destination_latest_outcome":latest[0] if latest else None,
                 "destination_fresh":fresh,
@@ -195,5 +200,5 @@ class DestinationHealth:
             "freshness_seconds":freshness_seconds,
             "total_candidates":len(output),
             "ranked":output[:limit],
-            "score_definition":"Wilson 95% lower bound on domain successes versus explicit domain failures",
+            "score_definition":"Wilson 95% lower bound of application successes versus transport failures; target restrictions excluded",
         }
