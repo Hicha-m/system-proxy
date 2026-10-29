@@ -16,3 +16,19 @@ python3 -m system_proxy.d1_storage \
 
 # Bounded public reference-only sample for manual verification via Cloudflare MCP.
 bash "$ROOT/ci/d1-reference-seed.sh"
+
+# Secret-boundary diagnostic: NEVER print values; only presence flags.
+# This reports what is visible to the Codespace CI child process.
+python3 - <<'PY'
+import json
+import os
+names = ("CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_D1_DATABASE_ID", "CLOUDFLARE_API_TOKEN")
+print(json.dumps({
+    "scope": "codespace_process_only",
+    "d1_configuration": {
+        name: ("present" if os.environ.get(name) else "absent")
+        for name in names
+    },
+    "values_disclosed": False,
+}, sort_keys=True))
+PY
