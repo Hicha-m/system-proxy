@@ -8,7 +8,7 @@ jobs:
   storage-status: {script: ci/storage-status.sh, execution: persistent, timeout: 60}
   rebuild-smoke: {script: ci/rebuild-smoke.sh, timeout: 45}
   daily-status: {script: ci/daily-status.sh, execution: persistent, timeout: 60}
-  d1-preview: {script: ci/codespace-d1-sync.sh, execution: persistent, timeout: 300, network: true}
+  d1-preview: {script: ci/d1-preview.sh, execution: persistent, timeout: 300}
   p2-benchmark: {script: ci/p2-benchmark.sh, timeout: 45}
   p2-observe: {script: ci/p2-observe.sh, execution: persistent, timeout: 60}
   p2-failures: {script: ci/p2-failure-diagnostics.sh, execution: persistent, timeout: 60}
