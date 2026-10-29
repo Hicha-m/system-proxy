@@ -41,6 +41,19 @@ Remote Dev MCP. Verifier l'heritage effectif des variables d'environnement.
 Le compte Cloudflare utilise ici est celui du proprietaire; ce depot
 contient uniquement des exemples sans identifiants reels.
 
+## Apres reconstruction : base SQLite absente
+
+Si la base locale a disparu, executer le pipeline de projet `d1-bootstrap`
+avec Remote Dev MCP. Il lance une collecte bornee (40 controles maximum,
+4 workers, 90 secondes de runtime par defaut), puis une previsualisation
+D1. Cette operation ne lit pas les secrets Cloudflare et ne transfere
+aucune donnee vers D1. Sans base, `d1-preview` indique `skipped`.
+
+Pour le transfert reel, lancer `bash ci/codespace-d1-sync.sh` dans le
+terminal Codespaces qui dispose des secrets, pas dans un job MCP.
+Le hook `postStartCommand` retente une synchronisation au prochain
+demarrage, mais ne lance aucune collecte automatiquement.
+
 ## Verifier
 
 Dans Remote Dev MCP : executer le pipeline `daily` sur un commit
