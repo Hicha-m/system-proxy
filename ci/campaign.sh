@@ -4,8 +4,7 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$ROOT"
 export PYTHONPATH="$ROOT/src"
 export PYTHONDONTWRITEBYTECODE=1
-# In persistent execution HOME is the Codespace user's home, not a
-# disposable job directory. Override SYSTEM_PROXY_DATA_DIR if desired.
+# Use the shared durable state directory, never the checkout itself.
 source "$ROOT/ci/storage.sh"
 storage_prepare
 DATA_DIR="$SYSTEM_PROXY_DATA_DIR"
