@@ -22,6 +22,8 @@ TABLES = (
      ("ip", "port", "protocol", "domain")),
     ("gateway_attempts", "attempted_at",
      ("ip", "port", "protocol", "domain")),
+    ("target_observations", "observed_at",
+     ("project_id", "target_id", "ip", "port", "protocol")),
 )
 
 
