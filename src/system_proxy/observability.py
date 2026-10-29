@@ -9,7 +9,6 @@ import argparse
 import html
 import json
 import os
-import re
 import sqlite3
 import tempfile
 from collections import Counter
@@ -20,7 +19,14 @@ from urllib.parse import quote
 from .persistence import data_directory
 
 REFERENCE = "https://example.com/"
-SOURCE_NAME = re.compile(r"[a-zA-Z][a-zA-Z0-9_.-]{0,39}\Z")
+# Only known PUBLIC catalogue identifiers may be shown in private reports.
+# Imported source labels are untrusted data and may resemble credentials.
+PUBLIC_SOURCE_IDS = frozenset({
+    "hproxy", "geonode", "proxycompass", "proxifly",
+    "monosans-http", "monosans-socks4", "monosans-socks5",
+    "speedx-http", "speedx-socks4", "speedx-socks5",
+    "monosans", "speedx",
+})
 CATEGORIES = {
     "success": "success", "proxy_error": "proxy_error", "unknown": "unknown",
     "network_error": "network_error", "target_denied": "target_denied",
@@ -133,10 +139,7 @@ def load_observability(db: Path, *, days: int = 14,
                 for name, count in conn.execute(
                     "SELECT source,COUNT(*) FROM provenance GROUP BY source"
                 ):
-                    if (isinstance(name, str) and SOURCE_NAME.fullmatch(name)
-                            and not any(part in name.lower() for part in (
-                                "secret", "token", "password", "apikey", "api_key"
-                            ))):
+                    if isinstance(name, str) and name in PUBLIC_SOURCE_IDS:
                         names[name] += count
                     else:
                         names["other"] += count
