@@ -8,7 +8,7 @@ export PYTHONPATH="$ROOT/src"
 source "$ROOT/ci/storage.sh"
 storage_prepare
 python3 - <<'PY'
-import json, os, sqlite3
+import json, os, sqlite3, re
 from pathlib import Path
 from collections import Counter
 from datetime import datetime, timedelta, timezone
@@ -73,6 +73,18 @@ with sqlite3.connect(uri,uri=True,timeout=10) as conn:
                 category="unclassified"
             legacy[category]+=n
         out["historical_reason_families"]=dict(sorted(legacy.items()))
+    # Reveal only sanitized machine identifiers, never free-form messages.
+    if "checks" in tables:
+        safe_codes=Counter()
+        for reason,n in conn.execute("""
+            SELECT reason,COUNT(*) FROM checks WHERE checked_at>=?
+            GROUP BY reason
+        """,(cutoff,)):
+            if isinstance(reason,str) and re.fullmatch(r"[a-z][a-z0-9_]{1,63}",reason):
+                safe_codes[reason]+=n
+            else:
+                safe_codes["unsafe_or_unknown"]+=n
+        out["safe_raw_reason_codes"]=dict(sorted(safe_codes.items()))
     if "url_checks" in tables:
         out["url_checks_by_protocol_outcome"]=[
             {"protocol":proto if proto in ("http","https","socks4","socks5") else "other",
