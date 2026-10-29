@@ -12,7 +12,7 @@ import json
 import os
 import sqlite3
 import tempfile
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from pathlib import Path
 
 
@@ -60,7 +60,7 @@ def _check(db: Path) -> None:
     if not db.is_file() or db.is_symlink():
         raise StorageError("SQLite database missing or unsafe")
     try:
-        with sqlite3.connect(db.resolve().as_uri() + "?mode=ro", uri=True, timeout=15) as conn:
+        with closing(sqlite3.connect(db.resolve().as_uri() + "?mode=ro", uri=True, timeout=15)) as conn:
             if conn.execute("PRAGMA quick_check").fetchone() != ("ok",):
                 raise StorageError("SQLite integrity check failed")
             if not conn.execute(
@@ -79,8 +79,8 @@ def _copy_consistent(source: Path, target: Path):
     os.close(fd)
     tmp = Path(name)
     try:
-        with sqlite3.connect(source.resolve().as_uri() + "?mode=ro", uri=True, timeout=15) as src:
-            with sqlite3.connect(tmp, timeout=15) as dst:
+        with closing(sqlite3.connect(source.resolve().as_uri() + "?mode=ro", uri=True, timeout=15)) as src:
+            with closing(sqlite3.connect(tmp, timeout=15)) as dst:
                 src.backup(dst, pages=256, sleep=0.1)
         _check(tmp)
         tmp.chmod(0o600)
@@ -165,7 +165,7 @@ def status(data_dir: Path) -> dict:
     if db.exists():
         try:
             _check(db)
-            with sqlite3.connect(db.resolve().as_uri() + "?mode=ro", uri=True) as conn:
+            with closing(sqlite3.connect(db.resolve().as_uri() + "?mode=ro", uri=True)) as conn:
                 state["endpoints"] = conn.execute("SELECT COUNT(*) FROM endpoints").fetchone()[0]
             state["status"] = "ok"
         except StorageError:
