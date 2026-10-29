@@ -78,7 +78,8 @@ def health(db: Path, *, now: datetime | None = None) -> dict:
     observation = load_observability(db, days=14, now=moment)
     sync = read_sync(db.parent, now=moment)
     alerts = set(observation["alerts"])
-    if storage["status"] != "ok":
+    db_ok = db.is_file() and observation["status"] == "ok" and storage["status"] == "ok"
+    if not db_ok:
         alerts.add("sqlite_missing_or_corrupt")
     for backup in ("latest_backup", "previous_backup"):
         if storage[backup] != True:
@@ -97,7 +98,7 @@ def health(db: Path, *, now: datetime | None = None) -> dict:
         except (ValueError, TypeError):
             alerts.add("d1_receipt_invalid")
     retention = {"status": "not_checked"}
-    if db.is_file() and storage["status"] == "ok":
+    if db_ok:
         # Dry-run only; never touch live historical records.
         preview = prune_history(db, days=90, max_delete=1000,
                                 apply=False, now=moment)
@@ -105,7 +106,7 @@ def health(db: Path, *, now: datetime | None = None) -> dict:
                      "eligible_preview": sum(preview["eligible"].values()),
                      "limit": preview["limit"], "retention_days": preview["days"]}
     return {
-        "status": "ok" if storage["status"] == "ok" else "degraded",
+        "status": "ok" if db_ok else "degraded",
         "alerts": sorted(alerts),
         "daily_runs": observation["daily_runs"][:3],
         "sqlite": {
