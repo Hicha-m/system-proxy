@@ -1,0 +1,4 @@
+{
+  "name": "system-proxy",
+  "postStartCommand": "bash ci/codespace-post-start.sh"
+}
