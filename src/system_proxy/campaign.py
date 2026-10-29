@@ -13,6 +13,8 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .persistence import data_directory
+
 from .collect import Collector, http_fetch, normalize_endpoint
 from .destination import DestinationHealth, Observation, wilson_lower
 from .history import History
@@ -229,7 +231,7 @@ def _execute_batch(history, health, entries, timeout, workers, totals, verifier)
 
 def main(argv=None) -> int:
     p=argparse.ArgumentParser(description="Opt-in, bounded Codespace proxy campaign")
-    p.add_argument("--db",type=Path,default=Path("proxy-campaign.sqlite3"))
+    p.add_argument("--db",type=Path,default=data_directory() / "campaign.sqlite3")
     p.add_argument("--target-url",default=TARGET)
     p.add_argument("--max-checks",type=int,default=10000)
     p.add_argument("--timeout",type=float,default=2)
