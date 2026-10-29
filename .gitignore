@@ -24,3 +24,18 @@ dist/
 *.sqlite3
 *.sqlite3-*
 proxy-report.json
+
+# Private target profiles, runtime data and local reports
+config/private/
+config/*.private.json
+config/*.private.yml
+config/*.private.yaml
+*.private.json
+*.private.yml
+*.private.yaml
+*.secrets.json
+*.secrets.yml
+*.secrets.yaml
+exports/
+.state/
+target-exports/

@@ -6,6 +6,34 @@
 
 Le produit doit unifier la **découverte des sources, la collecte, la vérification, la qualification, le stockage, la sélection et la rotation** des proxies. Les outils étudiés sont des *références et candidats à la réutilisation* — **pas trois applications à faire tourner obligatoirement en parallèle**.
 
+## Phase 1 — démonstration publique multi-destinations (sans réseau)
+
+La même application sait maintenant gérer des **profils de destinations indépendants**
+et conserver, pour chacune, l'historique des observations réelles et un **ranking
+de fiabilité par destination**.
+
+Les exemples publics utilisent `chatgpt.com`, `gemini.google.com/app`,
+`www.google.com` et `example.com`, en mode **passif uniquement** :
+**aucun test actif n'est déclenché automatiquement sur ces sites**.
+
+```bash
+python -m pip install -e .
+system-proxy-targets --config config/examples/public-targets.json profiles
+system-proxy-targets --config config/examples/public-targets.json demo
+```
+
+La commande `demo` affiche un classement **entièrement synthétique**, limité
+aux adresses IP de documentation TEST-NET et **sans trafic réseau**.
+L'outil `system-proxy-targets` permet aussi d'enregistrer une observation
+issue d'une requête HTTPS déjà réalisée et autorisée, puis d'afficher les
+classements et statistiques correspondants.
+
+Le code est public, mais les vrais profils, URLs, secrets et observations de
+production resteront privés. **Cloudflare D1, le VPS et l'API authentifiée
+sont des phases ultérieures : non déployés ici.**
+
+Voir [la documentation de démonstration multi-destinations](docs/PUBLIC_MULTI_TARGET.md).
+
 ## Principes retenus
 
 1. **Un produit, un moteur logique, plusieurs modules internes** : chaque responsabilité possède une interface claire ; éviter les implémentations doublonnées.
