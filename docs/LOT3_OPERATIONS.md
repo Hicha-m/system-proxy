@@ -6,7 +6,7 @@ et ne contacte **jamais** Cloudflare dans le pipeline d'observation.
 
 ## 1. Vérifier les opérations courantes
 
-Pipeline Remote Dev MCP `lot3-ops` (lecture seule) :
+Pipeline Remote Dev MCP **`p2-observe`** (lecture seule, inclut désormais le rapport du lot 3). En local, on peut exécuter directement :
 
 ```bash
 PYTHONPATH=src python3 -m system_proxy.ops report
@@ -77,7 +77,7 @@ la base privée vers Cloudflare D1 n'est implémenté ici.
 ## 5. Ordonnancement et notifications
 
 Les contrôles sont exécutés à la fin d'une campagne `daily` ou
-à la demande via `lot3-ops`. Ce lot n'installe ni cron persistant,
+à la demande via `p2-observe`. Ce lot n'installe ni cron persistant,
 ni webhook externe, ni token de notification. Quand le Codespace est
 arrêté, il ne peut pas continuer à collecter ni surveiller les alertes.
 Pour une notification réellement autonome hors Codespace, un service
