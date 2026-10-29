@@ -29,7 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .state
-          artifact_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name | startswith("proxy-daily-state-")) | select(.expired == false)] | first | .id // empty')
+          artifact_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name | startswith("proxy-daily-state-")) | select(.expired == false)] | .[0].id // empty')
           if [[ -n "$artifact_id" ]]; then
             gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > /tmp/proxy-daily-state.zip
             unzip -p /tmp/proxy-daily-state.zip campaign.sqlite3 > .state/campaign.sqlite3
