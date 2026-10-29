@@ -7,6 +7,8 @@ proxies.json
 *.log
 
 # Python
+# Empty generated Poetry lockfile (not used for dependency pinning here)
+poetry.lock
 __pycache__/
 *.py[cod]
 *.egg-info/
