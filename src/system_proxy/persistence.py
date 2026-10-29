@@ -33,9 +33,9 @@ def data_directory(*, env=None, workspace_root: Path = Path("/workspaces")) -> P
 
 
 def _private_dir(path: Path):
-    path.mkdir(parents=True, exist_ok=True, mode=0o700)
     if path.is_symlink():
         raise StorageError("Refusing a symlinked storage directory")
+    path.mkdir(parents=True, exist_ok=True, mode=0o700)
     path.chmod(0o700)
 
 
@@ -101,16 +101,20 @@ def prepare(data_dir: Path, *, legacy: Path | None = None) -> str:
             db.chmod(0o600)
             return "existing"
         backups = _backup_dir(data_dir)
+        found_corrupt_backup = False
         for candidate in (backups / "latest.sqlite3", backups / "previous.sqlite3"):
             if candidate.is_file():
                 try:
                     _copy_consistent(candidate, db)
                     return "restored"
                 except StorageError:
+                    found_corrupt_backup = True
                     continue
         if legacy and legacy.resolve() != db and legacy.is_file():
             _copy_consistent(legacy, db)
             return "migrated"
+        if found_corrupt_backup:
+            raise StorageError("All available SQLite backups are invalid")
         return "empty"
 
 
@@ -178,6 +182,8 @@ def main(argv=None):
         if args.action == "prepare":
             legacy = args.legacy or (Path.home() / ".local/share/system-proxy/campaign.sqlite3")
             result = prepare(root, legacy=legacy)
+            if result == "migrated":
+                snapshot(root)  # Ensure a protected first generation immediately.
             print(str(root))  # For scripts; no credentials or private data.
             print(json.dumps({"storage": result}), file=__import__("sys").stderr)
         elif args.action == "snapshot":
