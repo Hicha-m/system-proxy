@@ -18,7 +18,7 @@ from urllib.request import HTTPSHandler, ProxyHandler, Request, build_opener
 from typing import Callable
 
 from .collect import normalize_endpoint
-from .socks import probe_socks
+from .socks import SocksNegotiationError, probe_socks
 
 
 @dataclass(frozen=True)
@@ -69,6 +69,8 @@ def classify_probe_exception(exc: BaseException) -> tuple[str, str]:
     A target refusal or ambiguous infrastructure failure is not evidence
     that the proxy has failed.
     """
+    if isinstance(exc, SocksNegotiationError):
+        return ("unavailable" if exc.unavailable else "failed"), exc.reason
     if isinstance(exc, PermissionError):
         return "unavailable", "network_policy_denied"
     if isinstance(exc, socket.gaierror):
