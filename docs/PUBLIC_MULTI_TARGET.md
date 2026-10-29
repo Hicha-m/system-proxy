@@ -6,14 +6,14 @@ active proxy traffic to ChatGPT, Gemini, Google, or any other target.
 
 ## What is included
 
-- \`config/examples/public-targets.json\`: passive example profiles for
-  \`chatgpt.com\`, \`gemini.google.com/app\`, \`www.google.com\`, and the reference
-  \`example.com\` target. These are illustrations, **not test permissions**.
-- \`target_profiles.py\`: strict target profile parser (HTTPS only, no credentials,
+- `config/examples/public-targets.json`: passive example profiles for
+  `chatgpt.com`, `gemini.google.com/app`, `www.google.com`, and the reference
+  `example.com` target. These are illustrations, **not test permissions**.
+- `target_profiles.py`: strict target profile parser (HTTPS only, no credentials,
   query strings, private/loopback IPs, or unsupported active mode).
-- \`multi_target.py\`: SQLite history and ranking by \`project_id\` +
-  \`target_id\` + protocol, without any network requests.
-- \`target_cli.py\`: offline demonstration, profile listing, recording results
+- `multi_target.py`: SQLite history and ranking by `project_id` +
+  `target_id` + protocol, without any network requests.
+- `target_cli.py`: offline demonstration, profile listing, recording results
   of *already performed and authorized* requests, ranking and statistics.
 - Automated offline tests covering independent histories, stale results,
   403/429 interpretation, minimum sample count, protocol isolation and unsafe
@@ -35,8 +35,8 @@ system-proxy-targets --config config/examples/public-targets.json demo
 
 The demo uses only **RFC 5737 TEST-NET addresses** (192.0.2.0/24,
 198.51.100.0/24 and 203.0.113.0/24). All results are **synthetic**.
-The JSON output explicitly contains \`synthetic: true\` and
-\`network_requests: 0\`. It demonstrates how the same proxy can have
+The JSON output explicitly contains `synthetic: true` and
+`network_requests: 0`. It demonstrates how the same proxy can have
 different destination rankings without making any real requests.
 
 ## Record genuine observations (no request is made here)
@@ -55,9 +55,9 @@ system-proxy-targets --config config/examples/public-targets.json \
   --latency-ms 150
 ~~~
 
-Replace \`PROXY_PUBLIC_IP\` with an actual public proxy IP **only after** a
+Replace `PROXY_PUBLIC_IP` with an actual public proxy IP **only after** a
 successful authorized request. Fabricating a positive observation damages
-the ranking. The CLI enforces \`--verified-https\` and a 2xx/3xx response
+the ranking. The CLI enforces `--verified-https` and a 2xx/3xx response
 for a success. For explicit destination restrictions report:
 
 ~~~bash
@@ -87,22 +87,22 @@ is a verified success, the last observation is recent enough, the required
 number of successful observations is reached, and the Wilson 95% lower-bound
 score meets the profile threshold.
 
-The ranking is **destination-specific**: a success on \`example.com\` does not
-make a proxy eligible for \`chatgpt.com\` or \`google.com\`.
+The ranking is **destination-specific**: a success on `example.com` does not
+make a proxy eligible for `chatgpt.com` or `google.com`.
 
 ## The same open source code can power private installations
 
 Copy the public example to a **file outside the repository**, e.g.
-\`/etc/system-proxy/targets.json\`, and substitute *your own* permitted
+`/etc/system-proxy/targets.json`, and substitute *your own* permitted
 targets and opaque project IDs. Launch the same CLI with
-\`--config /etc/system-proxy/targets.json\` and a private SQLite path.
+`--config /etc/system-proxy/targets.json` and a private SQLite path.
 
 There is **no second private codebase**. The project IDs and real endpoints
 must never be embedded in public code, GitHub Actions logs or artifacts.
 When an authenticated API is implemented in a later phase, it will read
 the same policy/observations and protect both target discovery and rankings.
 
-\`.gitignore\` excludes common local private profile paths as an additional
+`.gitignore` excludes common local private profile paths as an additional
 guard, but **ignoring files is not a security boundary**. Never commit
 credentials, private production databases, or confidential observations.
 
@@ -117,4 +117,4 @@ credentials, private production databases, or confidential observations.
 4. Bounded retention, backups and restore tests on an independent machine.
 
 Note: the pre-existing daily reference-check campaign still checks only
-\`https://example.com/\`. It does not automatically use these passive profiles.
+`https://example.com/`. It does not automatically use these passive profiles.
