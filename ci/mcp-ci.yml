@@ -30,6 +30,11 @@ jobs:
     timeout: 21600
     network: true
 
+  daily-status:
+    script: ci/daily-status.sh
+    execution: persistent
+    timeout: 60
+
   # Read the same persistent SQLite database as the campaign.
   campaign-report:
     script: ci/campaign-report.sh
@@ -43,3 +48,4 @@ pipelines:
   campaign: [campaign]
   campaign-report: [campaign-report]
   daily: [daily]
+  daily-status: [daily-status]
