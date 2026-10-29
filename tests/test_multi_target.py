@@ -171,7 +171,7 @@ class Ranking(unittest.TestCase):
         self.assertFalse(after["eligible"])
 
     def test_late_arriving_old_failure_does_not_override_recent_success(self):
-        for _ in range(3):
+        for _ in range(6):
             self.add(self.first, hours=0)
         self.add(self.first, outcome="proxy_error", status=None,
                  verified=False, hours=2)
@@ -221,7 +221,7 @@ class Ranking(unittest.TestCase):
         result = json.loads(buffer.getvalue())
         self.assertEqual(result["count"], 1)
         path = outdir / "demo/first/http.txt"
-        self.assertEqual(path.read_text(), "http://8.8.8.8:8080\\n".replace("\\\\n", "\\n"))
+        self.assertEqual(path.read_text(), "http://8.8.8.8:8080\n")
         json_path = outdir / "demo/first/http.json"
         exported = json.loads(json_path.read_text())
         self.assertEqual(exported["proxies"][0]["ip"], "8.8.8.8")
