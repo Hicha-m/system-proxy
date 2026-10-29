@@ -25,7 +25,8 @@ NOW = datetime.now(timezone.utc)
 class P1Tests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.folder = Path(self.temp.name)
+        self.folder = Path(self.temp.name) / "state"
+        self.folder.mkdir()
         self.db = self.folder / "campaign.sqlite3"
         self.h = History(self.db)
         self.h.import_candidates([{"ip":"8.8.8.8","port":8080,"protocols":["http"],"sources":["geonode"]}])
