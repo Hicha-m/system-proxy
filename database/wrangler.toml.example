@@ -1,0 +1,10 @@
+# Example binding configuration for manual migrations / future Workers.
+# Copy outside this repository and set YOUR OWN database UUID.
+name = "system-proxy-example"
+compatibility_date = "2026-10-29"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "system-proxy"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_UUID"
+migrations_dir = "database/migrations"
