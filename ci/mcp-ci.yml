@@ -15,6 +15,11 @@ jobs:
     timeout: 45
     network: true
 
+  # Public example ranking is offline: no real destination probes.
+  public-demo:
+    script: ci/public-demo.sh
+    timeout: 45
+
   # Owner-approved persistent execution runs on the Codespace host, not in
   # the temporary 900-second job environment. Maximum authorized: 21600 s.
   campaign:
@@ -49,3 +54,4 @@ pipelines:
   campaign-report: [campaign-report]
   daily: [daily]
   daily-status: [daily-status]
+  public-demo: [public-demo]
