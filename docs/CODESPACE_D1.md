@@ -43,7 +43,15 @@ contient uniquement des exemples sans identifiants reels.
 
 ## Apres reconstruction : base SQLite absente
 
-Si la base locale a disparu, executer le pipeline de projet `d1-bootstrap`
+La base par defaut est maintenant stockee hors du depot sous
+`/workspaces/.system-proxy-state/campaign.sqlite3` avec deux generations
+de sauvegardes verifiees sur le volume persistant. Les commandes du projet
+migrent automatiquement la base historique du HOME et restaurent une
+sauvegarde lorsque la base principale est absente. **Cela ne protege pas
+contre la suppression du Codespace** : voir
+[le guide P0](P0_STORAGE_RECOVERY.md).
+
+Si la base locale a disparu et qu'aucune sauvegarde n'existe, executer le pipeline de projet `d1-bootstrap`
 avec Remote Dev MCP. Il lance une collecte bornee (40 controles maximum,
 4 workers, 90 secondes de runtime par defaut), puis une previsualisation
 D1. Cette operation ne lit pas les secrets Cloudflare et ne transfere
