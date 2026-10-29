@@ -20,4 +20,19 @@ python3 -m system_proxy.daily \
 # a successful daily run, and only when its private Cloudflare secret exists.
 if [[ "${PROXY_D1_SYNC_ENABLED:-1}" == "1" ]]; then
   bash "$ROOT/ci/codespace-d1-sync.sh"
+else
+  python3 -m system_proxy.ops record-sync --data-dir "$DATA_DIR" \
+    --status disabled --reason owner_disabled
 fi
+
+# Maintenance defaults to a read-only 90-day preview. Explicit opt-in
+# is required to remove up to 1,000 old duplicate observations. The
+# retention module creates and checks a SQLite snapshot before changes.
+if [[ "${PROXY_RETENTION_AUTO_APPLY:-0}" == "1" ]]; then
+  python3 -m system_proxy.retention \
+    --db "$DATA_DIR/campaign.sqlite3" --days 90 --max-delete 1000 --apply
+else
+  python3 -m system_proxy.retention \
+    --db "$DATA_DIR/campaign.sqlite3" --days 90 --max-delete 1000
+fi
+python3 -m system_proxy.ops report --db "$DATA_DIR/campaign.sqlite3"
