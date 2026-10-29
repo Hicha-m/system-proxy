@@ -90,6 +90,25 @@ score meets the profile threshold.
 The ranking is **destination-specific**: a success on `example.com` does not
 make a proxy eligible for `chatgpt.com` or `google.com`.
 
+## Export an eligible list for just one destination (offline)
+
+The project-specific export includes only proxies that are currently
+**eligible for this exact destination**, based on repeated client-reported
+observations (not reference-target checks):
+
+~~~bash
+system-proxy-targets --config config/examples/public-targets.json \
+  --db "$HOME/.local/share/system-proxy/campaign.sqlite3" \
+  export --project public-web-demo --target google \
+  --protocol http --output-dir "$HOME/.local/share/system-proxy/target-exports"
+~~~
+
+This writes `public-web-demo/google/http.json` and `http.txt` beneath the
+selected output directory. Files are created with restrictive permissions.
+No network calls are performed and only the explicitly selected project and
+target are used. An export will be empty until the client supplies enough
+**real** verified observations for that destination.
+
 ## The same open source code can power private installations
 
 Copy the public example to a **file outside the repository**, e.g.
