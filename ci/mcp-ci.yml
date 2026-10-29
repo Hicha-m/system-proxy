@@ -45,6 +45,12 @@ jobs:
     execution: persistent
     timeout: 60
 
+  # Offline, read-only Cloudflare D1 synchronization preview.
+  d1-preview:
+    script: ci/d1-preview.sh
+    execution: persistent
+    timeout: 300
+
   # Read the same persistent SQLite database as the campaign.
   campaign-report:
     script: ci/campaign-report.sh
@@ -61,3 +67,4 @@ pipelines:
   daily-status: [daily-status]
   public-demo: [public-demo]
   d1-smoke: [d1-smoke]
+  d1-preview: [d1-preview]
