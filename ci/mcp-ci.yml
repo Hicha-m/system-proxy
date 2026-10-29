@@ -23,6 +23,13 @@ jobs:
     timeout: 21600
     network: true
 
+  # Daily source refresh + reliability retests, sharing Codespace SQLite.
+  daily:
+    script: ci/daily.sh
+    execution: persistent
+    timeout: 21600
+    network: true
+
   # Read the same persistent SQLite database as the campaign.
   campaign-report:
     script: ci/campaign-report.sh
@@ -35,3 +42,4 @@ pipelines:
   live: [network]
   campaign: [campaign]
   campaign-report: [campaign-report]
+  daily: [daily]
