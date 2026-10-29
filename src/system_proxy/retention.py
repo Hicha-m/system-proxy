@@ -34,9 +34,11 @@ def _has_table(conn: sqlite3.Connection, table: str) -> bool:
 def _sql(table: str, stamp: str, group: tuple[str, ...]) -> str:
     cols = ",".join(group)
     return (
-        f"SELECT rowid FROM {table} WHERE {stamp}<? "
-        f"AND rowid NOT IN (SELECT MAX(rowid) FROM {table} GROUP BY {cols}) "
-        f"ORDER BY {stamp},rowid LIMIT ?"
+        f"SELECT rid FROM ("
+        f"SELECT rowid AS rid, {stamp} AS observed, "
+        f"ROW_NUMBER() OVER (PARTITION BY {cols} "
+        f"ORDER BY {stamp} DESC,rowid DESC) AS rn FROM {table}) "
+        f"WHERE observed<? AND rn>1 ORDER BY observed,rid LIMIT ?"
     )
 
 
