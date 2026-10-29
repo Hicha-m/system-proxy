@@ -88,8 +88,8 @@ class ObservabilityTests(unittest.TestCase):
         self.assertEqual(report["gateway_outcomes"]["connected"], 1)
         self.assertEqual(report["check_reasons"]["other"], 1)
         self.assertEqual(report["sources"], [
-            {"source": "source-one", "endpoints": 1},
             {"source": "other", "endpoints": 1},
+            {"source": "source-one", "endpoints": 1},
         ])
         payload = json.dumps(report)
         html = render_dashboard(report)
