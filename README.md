@@ -57,6 +57,21 @@ restent des etapes ulterieures.**
 
 [Guide D1 : deploiement, quotas, securite, synchronisation et backups](docs/CLOUDFLARE_D1.md).
 
+## Codespace comme collecteur, D1 comme stockage durable
+
+En attendant un eventuel VPS, **le Codespace continue les collectes et
+verifications**. Le pipeline `daily` peut aussi declencher une synchronisation
+de ses resultats de reference vers Cloudflare D1 a la fin de la collecte.
+Cette synchronisation ne s'active qu'avec les identifiants Cloudflare
+configures comme secrets sur l'environnement d'execution Codespace.
+
+Le mode sans secret annonce explicitement `skipped`, sans exposer de donnees
+et sans interrompre la collecte. Un premier echantillon reel de huit proxies
+de reference a ete transfere vers D1 et relu avec succes via les MCP;
+cela ne signifie pas encore que toute la synchronisation est automatique.
+
+[Guide de fonctionnement Codespace + D1](docs/CODESPACE_D1.md).
+
 ## Principes retenus
 
 1. **Un produit, un moteur logique, plusieurs modules internes** : chaque responsabilité possède une interface claire ; éviter les implémentations doublonnées.

@@ -7,9 +7,12 @@ cd "$ROOT"
 export PYTHONPATH="$ROOT/src"
 export PYTHONDONTWRITEBYTECODE=1
 DATA_DIR="${SYSTEM_PROXY_DATA_DIR:-${HOME}/.local/share/system-proxy}"
-exec python3 -m system_proxy.d1_storage \
+python3 -m system_proxy.d1_storage \
   --db "$DATA_DIR/campaign.sqlite3" \
   --max-endpoints 5000 \
   --max-events 2000 \
   --max-sources 10000 \
   --since-hours 72
+
+# Bounded public reference-only sample for manual verification via Cloudflare MCP.
+bash "$ROOT/ci/d1-reference-seed.sh"

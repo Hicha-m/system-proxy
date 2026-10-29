@@ -25,9 +25,9 @@ jobs:
       - name: Offline build smoke (read-only source)
         run: bash ci/build.sh
       - name: Validate MCP script syntax (no network)
-        run: bash -n ci/test.sh ci/build.sh ci/network.sh ci/campaign.sh ci/campaign-report.sh ci/daily.sh ci/daily-status.sh ci/public-demo.sh ci/d1-smoke.sh
+        run: bash -n ci/test.sh ci/build.sh ci/network.sh ci/campaign.sh ci/campaign-report.sh ci/daily.sh ci/daily-status.sh ci/public-demo.sh ci/d1-smoke.sh ci/codespace-d1-sync.sh
       - name: D1 schema smoke (no network)
-        run: bash ci/d1-smoke.sh
+        run: bash ci/d1-smoke.sh ci/codespace-d1-sync.sh ci/d1-reference-seed.sh
       - name: D1 CLI help (no credentials)
         run: system-proxy-d1 --help
       - name: Public multi-target demonstration (no network)
