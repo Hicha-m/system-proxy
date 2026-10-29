@@ -105,7 +105,7 @@ class History:
         ).fetchall():
             rows = self.conn.execute("""
             SELECT status, latency_ms, checked_at, reason
-            FROM checks WHERE ip=? AND port=? AND protocol=? ORDER BY id DESC
+            FROM checks WHERE ip=? AND port=? AND protocol=? ORDER BY checked_at DESC,id DESC
             """, (ip, port, proto)).fetchall()
             passed = sum(row[0] == "passed" for row in rows)
             failed = sum(row[0] == "failed" for row in rows)

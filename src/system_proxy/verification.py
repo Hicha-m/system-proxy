@@ -9,6 +9,7 @@ from __future__ import annotations
 import concurrent.futures
 import http.client
 import ipaddress
+import socket
 import ssl
 import time
 from dataclasses import dataclass
@@ -62,6 +63,40 @@ def direct_baseline(timeout: float) -> bool:
     return direct_baseline_details(timeout)["status"] == "ok"
 
 
+def classify_probe_exception(exc: BaseException) -> tuple[str, str]:
+    """Stable, secret-safe error codes; avoid raw URL or exception text.
+
+    A target refusal or ambiguous infrastructure failure is not evidence
+    that the proxy has failed.
+    """
+    if isinstance(exc, PermissionError):
+        return "unavailable", "network_policy_denied"
+    if isinstance(exc, socket.gaierror):
+        return "unavailable", "dns_resolution_failed"
+    if isinstance(exc, (TimeoutError, socket.timeout)):
+        return "failed", "timeout"
+    if isinstance(exc, ssl.SSLError):
+        return "failed", "tls_error"
+    if isinstance(exc, HTTPError):
+        if exc.code in (403, 407, 429):
+            return "unavailable", "proxy_or_target_denied"
+        if exc.code >= 500:
+            return "unavailable", "upstream_or_target_error"
+        return "failed", "invalid_http_response"
+    if isinstance(exc, URLError):
+        reason = exc.reason
+        if isinstance(reason, BaseException) and reason is not exc:
+            return classify_probe_exception(reason)
+        return "unavailable", "url_error_unknown"
+    if isinstance(exc, (ConnectionRefusedError, ConnectionResetError, BrokenPipeError)):
+        return "failed", "proxy_connection_error"
+    if isinstance(exc, (OSError, http.client.HTTPException)):
+        return "failed", "network_or_protocol_error"
+    if isinstance(exc, ValueError):
+        return "unavailable", "invalid_probe_request"
+    return "unavailable", "unexpected_checker_exception"
+
+
 Probe = Callable[[str, int, float], tuple[bool, str]]
 
 
@@ -80,17 +115,10 @@ def check_one(ip: str, port: int, protocol: str, timeout: float,
             ok, reason = socks_probe(ip, port, timeout, protocol)
         elapsed = round((time.monotonic() - start) * 1000, 2)
         return Check(ip, port, protocol, "passed" if ok else "failed", elapsed, reason[:100], stamp)
-    except PermissionError:
-        # Host/network policy refusal is not evidence that the proxy is dead.
-        return Check(ip, port, protocol, "unavailable", None, "network_policy_denied", stamp)
-    except (OSError, ValueError, TimeoutError, HTTPError, URLError, ssl.SSLError,
-            http.client.HTTPException) as exc:
-        return Check(ip, port, protocol, "failed", None, type(exc).__name__, stamp)
-    except Exception:
-        # Never allow one malformed public endpoint to abort an entire
-        # multi-thousand-candidate campaign. Do not emit raw exception text.
-        return Check(ip, port, protocol, "unavailable", None,
-                     "unexpected_checker_exception", stamp)
+    except Exception as exc:
+        # One bad endpoint cannot abort a campaign; no raw exception text.
+        status, reason = classify_probe_exception(exc)
+        return Check(ip, port, protocol, status, None, reason, stamp)
 
 
 def verify_candidates(candidates: list[tuple[str, int, str]], *,

@@ -10,7 +10,7 @@ import json
 import os
 import re
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from .campaign import TARGET
@@ -57,6 +57,8 @@ def export_projects(conn: sqlite3.Connection, output_dir: Path, *,
         min_score = project.get("min_score", 30)
         max_age_hours = project.get("max_age_hours", 24)
         limit = project.get("limit", 250)
+        score_window_hours = project.get("score_window_hours", 168)
+        min_observations = project.get("min_observations", 2)
         if (not isinstance(name, str) or
             not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,48}", name) or
             name in result or protocol not in {"http", "socks4", "socks5"} or
@@ -64,9 +66,12 @@ def export_projects(conn: sqlite3.Connection, output_dir: Path, *,
             type(min_successes) is not int or not 2 <= min_successes <= 100 or
             type(min_score) not in {int, float} or not 0 <= min_score <= 100 or
             type(max_age_hours) is not int or not 1 <= max_age_hours <= 168 or
-            type(limit) is not int or not 1 <= limit <= 1000):
+            type(limit) is not int or not 1 <= limit <= 1000 or
+            type(score_window_hours) is not int or not 1 <= score_window_hours <= 720 or
+            type(min_observations) is not int or not 2 <= min_observations <= 100):
             raise ValueError("Invalid or unsupported project profile")
         candidates = []
+        since = (now - timedelta(hours=score_window_hours)).isoformat()
         for ip, port, successes, failures, last_status, last_checked, latency in conn.execute("""
             SELECT c.ip,c.port,
                    SUM(CASE WHEN c.outcome='success' THEN 1 ELSE 0 END) good,
@@ -74,14 +79,15 @@ def export_projects(conn: sqlite3.Connection, output_dir: Path, *,
                    (SELECT recent.outcome FROM url_checks recent
                     WHERE recent.ip=c.ip AND recent.port=c.port
                       AND recent.protocol=c.protocol AND recent.target_url=c.target_url
-                    ORDER BY recent.rowid DESC LIMIT 1) last_status,
+                    ORDER BY recent.checked_at DESC,recent.rowid DESC LIMIT 1) last_status,
                    MAX(c.checked_at) last_checked,
                    MIN(CASE WHEN c.outcome='success' THEN c.latency_ms END) latency
             FROM url_checks c
-            WHERE c.target_url=? AND c.protocol=?
+            WHERE c.target_url=? AND c.protocol=? AND c.checked_at>=? AND c.checked_at<=?
             GROUP BY c.ip,c.port
-        """, (TARGET, protocol)):
-            if last_status != "success" or successes < min_successes:
+        """, (TARGET, protocol, since, now.isoformat())):
+            if (last_status != "success" or successes < min_successes
+                    or successes + failures < min_observations):
                 continue
             try:
                 age = (now - datetime.fromisoformat(last_checked)).total_seconds()
@@ -96,6 +102,8 @@ def export_projects(conn: sqlite3.Connection, output_dir: Path, *,
                 "ip": ip, "port": port, "protocol": protocol,
                 "score": score, "successes": successes, "failures": failures,
                 "last_checked": last_checked, "latency_ms": latency,
+                "score_window_hours": score_window_hours,
+                "observations": successes + failures,
             })
         candidates.sort(key=lambda x: (-x["score"], -x["successes"],
                                       x["latency_ms"] if x["latency_ms"] is not None else float("inf")))
@@ -106,7 +114,9 @@ def export_projects(conn: sqlite3.Connection, output_dir: Path, *,
             "generated_at": now.isoformat(),
             "warning": "Reference-target verification only. Other destinations must be validated separately.",
             "policy": {"min_successes": min_successes, "min_score": min_score,
-                       "max_age_hours": max_age_hours},
+                       "max_age_hours": max_age_hours,
+                       "score_window_hours": score_window_hours,
+                       "min_observations": min_observations},
             "proxies": selected,
         }
         _atomic_write(folder / "proxies.json", json.dumps(document, indent=2, sort_keys=True) + "\n")

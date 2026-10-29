@@ -61,7 +61,7 @@ class CampaignTests(unittest.TestCase):
                              probe=lambda *a: (_ for _ in ()).throw(
                                  http.client.BadStatusLine("<html>")))
         self.assertEqual(result.status,"failed")
-        self.assertEqual(result.reason,"BadStatusLine")
+        self.assertEqual(result.reason,"network_or_protocol_error")
 
     def test_large_public_feed_filters_private_credentials_and_types(self):
         def fake_fetch(url, timeout, limit):

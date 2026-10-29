@@ -7,7 +7,9 @@
       "min_successes": 2,
       "min_score": 30,
       "max_age_hours": 24,
-      "limit": 250
+      "limit": 250,
+      "score_window_hours": 168,
+      "min_observations": 2
     },
     {
       "name": "reference-socks4",
@@ -16,7 +18,9 @@
       "min_successes": 2,
       "min_score": 30,
       "max_age_hours": 24,
-      "limit": 250
+      "limit": 250,
+      "score_window_hours": 168,
+      "min_observations": 2
     },
     {
       "name": "reference-socks5",
@@ -25,7 +29,9 @@
       "min_successes": 2,
       "min_score": 30,
       "max_age_hours": 24,
-      "limit": 250
+      "limit": 250,
+      "score_window_hours": 168,
+      "min_observations": 2
     }
   ]
 }
