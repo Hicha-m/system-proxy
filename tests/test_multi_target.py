@@ -90,15 +90,21 @@ class Profiles(unittest.TestCase):
         self.assertTrue(result["test_net_only"])
         self.assertEqual(result["network_requests"], 0)
         self.assertEqual(len(result["targets"]), 2)
-        for target in result["targets"].values():
+        sample_ips = ("192.0.2.10", "198.51.100.20", "203.0.113.30")
+        winners = []
+        for index, target in enumerate(result["targets"].values()):
             ranked = target["ranking"]["ranking"]
             self.assertEqual(target["stats"]["total_observations"], 18)
-            self.assertEqual(ranked[0]["ip"], "192.0.2.10")
+            winner = sample_ips[index % 3]
+            self.assertEqual(ranked[0]["ip"], winner)
+            winners.append(winner)
             self.assertTrue(ranked[0]["eligible"])
-            denied = next(x for x in ranked if x["ip"] == "203.0.113.30")
+            denied_ip = sample_ips[(index + 2) % 3]
+            denied = next(x for x in ranked if x["ip"] == denied_ip)
             self.assertFalse(denied["eligible"])
             self.assertEqual(denied["restrictions"], 1)
             self.assertEqual(denied["proxy_failures"], 0)
+        self.assertEqual(len(set(winners)), 2)
 
 
 class Ranking(unittest.TestCase):
