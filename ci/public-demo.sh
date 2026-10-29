@@ -17,5 +17,6 @@ assert demo["network_requests"] == 0
 assert len(demo["targets"]) == 4
 for record in demo["targets"].values():
     assert record["ranking"]["observed_proxies"] == 3
-print("Public demonstration OK: 4 isolated targets, reserved IPs, no network calls")
+assert len({value["ranking"]["ranking"][0]["ip"] for value in demo["targets"].values()}) >= 3
+print("Public demonstration OK: 4 isolated target rankings with distinct winners, reserved IPs, no network calls")
 PY
