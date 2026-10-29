@@ -6,6 +6,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+from .persistence import data_directory
+
 
 def load_status(db: Path, *, days: int = 14) -> dict:
     if not 1 <= days <= 90:
@@ -43,7 +45,7 @@ def load_status(db: Path, *, days: int = 14) -> dict:
 def main(argv=None):
     p = argparse.ArgumentParser(description="Read-only daily proxy monitoring")
     p.add_argument("--db", type=Path,
-                   default=Path.home() / ".local/share/system-proxy/campaign.sqlite3")
+                   default=data_directory() / "campaign.sqlite3")
     p.add_argument("--days", type=int, default=14)
     args = p.parse_args(argv)
     print(json.dumps(load_status(args.db, days=args.days), sort_keys=True), flush=True)
