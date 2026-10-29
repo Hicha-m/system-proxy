@@ -2,9 +2,6 @@ version: 1
 jobs:
   test: {script: ci/test.sh, timeout: 45}
   build: {script: ci/build.sh, timeout: 45}
-  network: {script: ci/network.sh, timeout: 45, network: true}
-  public-demo: {script: ci/public-demo.sh, timeout: 45}
-  d1-smoke: {script: ci/d1-smoke.sh, timeout: 45}
   campaign: {script: ci/campaign.sh, execution: persistent, timeout: 21600, network: true}
   daily: {script: ci/daily.sh, execution: persistent, timeout: 21600, network: true}
   d1-bootstrap: {script: ci/d1-bootstrap.sh, execution: persistent, timeout: 300, network: true}
@@ -12,18 +9,12 @@ jobs:
   rebuild-smoke: {script: ci/rebuild-smoke.sh, timeout: 45}
   daily-status: {script: ci/daily-status.sh, execution: persistent, timeout: 60}
   d1-preview: {script: ci/d1-preview.sh, execution: persistent, timeout: 300}
-  campaign-report: {script: ci/campaign-report.sh, execution: persistent, timeout: 60}
 pipelines:
   quick: [test, build]
-  full: [test, build]
-  live: [network]
   campaign: [campaign]
-  campaign-report: [campaign-report]
   daily: [daily]
-  daily-status: [daily-status]
+  d1-bootstrap: [d1-bootstrap]
   storage-status: [storage-status]
   rebuild-smoke: [rebuild-smoke]
-  d1-bootstrap: [d1-bootstrap]
-  public-demo: [public-demo]
-  d1-smoke: [d1-smoke]
+  daily-status: [daily-status]
   d1-preview: [d1-preview]
