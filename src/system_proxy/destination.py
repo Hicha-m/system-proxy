@@ -27,7 +27,7 @@ def domain_key(domain: str) -> str:
     if not isinstance(domain, str):
         raise ValueError("Hostname must be text")
     value = domain.strip().rstrip(".").lower()
-    if len(value) > 253 or not value or "://" in value or any(c in value for c in "/:@?#\ "):
+    if len(value) > 253 or not value or "://" in value or any(c in value for c in "/:@?#\\ "):
         raise ValueError("Provide only a domain hostname")
     try:
         ascii_name = value.encode("idna").decode("ascii")
