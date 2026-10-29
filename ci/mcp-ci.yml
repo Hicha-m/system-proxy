@@ -51,6 +51,13 @@ jobs:
     execution: persistent
     timeout: 300
 
+  # Codespace-only, optional credential-backed D1 import after collection.
+  d1-sync:
+    script: ci/codespace-d1-sync.sh
+    execution: persistent
+    timeout: 900
+    network: true
+
   # Read the same persistent SQLite database as the campaign.
   campaign-report:
     script: ci/campaign-report.sh
@@ -64,6 +71,8 @@ pipelines:
   campaign: [campaign]
   campaign-report: [campaign-report]
   daily: [daily]
+  daily-d1: [daily, d1-sync]
+  d1-sync: [d1-sync]
   daily-status: [daily-status]
   public-demo: [public-demo]
   d1-smoke: [d1-smoke]
