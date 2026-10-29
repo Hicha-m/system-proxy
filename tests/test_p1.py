@@ -122,7 +122,7 @@ class P1Tests(unittest.TestCase):
         self.assertTrue((_backup_dir(self.folder)/"latest.sqlite3").is_file())
         with sqlite3.connect(self.db) as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM url_checks").fetchone()[0],1)
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM destination_observations").fetchone()[0],1
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM destination_observations").fetchone()[0],1)
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM checks").fetchone()[0],1)
         self.h=History(self.db)
 
