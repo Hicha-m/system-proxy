@@ -147,6 +147,49 @@ class P1Tests(unittest.TestCase):
         self.h=History(self.db)
         self.assertEqual(self.h.conn.execute("SELECT COUNT(*) FROM url_checks").fetchone()[0],1)
 
+    def test_retention_preserves_latest_per_project_and_target(self):
+        from system_proxy.multi_target import TargetStore
+        TargetStore(self.h)
+        old = NOW - timedelta(days=130)
+        middle = NOW - timedelta(days=110)
+        fresh = NOW - timedelta(days=2)
+        # An old observation arriving after a new one must not become
+        # the protected latest record. Independent targets retain theirs.
+        entries = [
+            ("project-a", "target-a", "success", fresh),
+            ("project-a", "target-a", "proxy_error", old),
+            ("project-a", "target-a", "success", middle),
+            ("project-a", "target-b", "rate_limited", middle),
+            ("project-b", "target-a", "proxy_error", old),
+        ]
+        for project, target, outcome, instant in entries:
+            self.h.conn.execute("""
+                INSERT INTO target_observations
+                  (project_id,target_id,ip,port,protocol,outcome,
+                   observed_at,source,http_status,latency_ms,verified_https)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            """, (project,target,"8.8.8.8",8080,"http",outcome,
+                  instant.isoformat(),"client",None,None,0))
+        self.h.conn.commit()
+        preview = prune_history(self.db, days=90, now=NOW)
+        self.assertEqual(preview["eligible"]["target_observations"], 2)
+        self.assertEqual(self.h.conn.execute(
+            "SELECT COUNT(*) FROM target_observations").fetchone()[0], 5)
+        self.h.close()
+        applied = prune_history(self.db, days=90, now=NOW, apply=True)
+        self.assertEqual(applied["eligible"]["target_observations"], 2)
+        with sqlite3.connect(self.db) as conn:
+            actual = conn.execute("""
+                SELECT project_id,target_id,outcome FROM target_observations
+                ORDER BY project_id,target_id
+            """).fetchall()
+        self.assertEqual(actual, [
+            ("project-a", "target-a", "success"),
+            ("project-a", "target-b", "rate_limited"),
+            ("project-b", "target-a", "proxy_error"),
+        ])
+        self.h = History(self.db)
+
     def test_retention_limits_and_missing_db(self):
         with self.assertRaises(ValueError):
             prune_history(self.db,days=1)
