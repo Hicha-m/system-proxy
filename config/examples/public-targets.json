@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "description": "Public examples only. Destinations are passive-observation profiles: NO automatic proxy traffic is sent to these sites.",
+  "projects": [
+    {
+      "id": "public-web-demo",
+      "targets": [
+        {
+          "id": "chatgpt",
+          "url": "https://chatgpt.com/",
+          "mode": "passive",
+          "protocols": [
+            "http",
+            "socks4",
+            "socks5"
+          ],
+          "policy": {
+            "min_successes": 3,
+            "min_score": 45,
+            "max_age_hours": 24
+          }
+        },
+        {
+          "id": "gemini",
+          "url": "https://gemini.google.com/app",
+          "mode": "passive",
+          "protocols": [
+            "http",
+            "socks4",
+            "socks5"
+          ],
+          "policy": {
+            "min_successes": 3,
+            "min_score": 45,
+            "max_age_hours": 24
+          }
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/",
+          "mode": "passive",
+          "protocols": [
+            "http",
+            "socks4",
+            "socks5"
+          ],
+          "policy": {
+            "min_successes": 3,
+            "min_score": 45,
+            "max_age_hours": 24
+          }
+        }
+      ]
+    },
+    {
+      "id": "reference-demo",
+      "targets": [
+        {
+          "id": "reference",
+          "url": "https://example.com/",
+          "mode": "passive",
+          "protocols": [
+            "http",
+            "socks4",
+            "socks5"
+          ],
+          "policy": {
+            "min_successes": 2,
+            "min_score": 30,
+            "max_age_hours": 24
+          }
+        }
+      ]
+    }
+  ]
+}
