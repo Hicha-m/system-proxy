@@ -13,6 +13,8 @@ jobs:
   p2-observe: {script: ci/p2-observe.sh, execution: persistent, timeout: 60}
 pipelines:
   quick: [test, build]
+  p2: [test, build, p2-benchmark]
+  p2-observe: [p2-observe]
   campaign: [campaign]
   daily: [daily]
   d1-bootstrap: [d1-bootstrap]
