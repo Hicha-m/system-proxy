@@ -58,7 +58,8 @@ system-proxy-retention --days 90 --max-delete 5000 --apply
 ~~~
 
 Les journaux bruts anciens peuvent etre elimines dans `checks`,
-`url_checks`, `destination_observations` et `gateway_attempts`.
+`url_checks`, `destination_observations`, `gateway_attempts` et
+`target_observations` (isolation par projet et cible).
 La **derniere observation chronologique** reste preservee par
 proxy/protocole et destination afin de conserver les echecs,
 les exclusions et les indices necessaires aux nouvelles campagnes.
