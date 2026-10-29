@@ -23,9 +23,10 @@ def synthetic_demo(profiles: dict) -> dict:
     now = datetime.now(timezone.utc)
     with History(":memory:") as history:
         store = TargetStore(history)
-        for profile in profiles.values():
+        for target_index, profile in enumerate(profiles.values()):
             if "http" not in profile.protocols:
                 continue
+            preferred = target_index % len(TEST_NET)
             for index, (ip, port) in enumerate(TEST_NET):
                 history.conn.execute(
                     "INSERT OR IGNORE INTO endpoints VALUES (?,?,?)",
@@ -34,9 +35,9 @@ def synthetic_demo(profiles: dict) -> dict:
                 # The demo bypasses live-IP validation ONLY in an isolated
                 # in-memory DB, using RFC 5737 documentation-only addresses.
                 for trial in range(6):
-                    if index == 0:
+                    if index == preferred:
                         outcome, status, latency = "success", 200, 70 + trial * 3
-                    elif index == 1:
+                    elif index == (preferred + 1) % len(TEST_NET):
                         outcome, status, latency = (
                             ("proxy_error", None, None) if trial in (1, 4)
                             else ("success", 200, 170 + trial * 7)
