@@ -159,11 +159,15 @@ class TargetStore:
                 item["restrictions"] += 1
             else:
                 item["unknown"] += 1
-            # Last ingested observation wins, even if its client timestamp
-            # predates an earlier record (avoid future-data leakage).
-            item["latest_outcome"] = outcome
-            item["last_checked_at"] = stamp
-            item["last_http_status"] = status
+            # Client observations may arrive out of order. The most recent
+            # *actual test timestamp* wins, not the last ingestion time.
+            if item["last_checked_at"] is None or (
+                datetime.fromisoformat(stamp) >=
+                datetime.fromisoformat(item["last_checked_at"])
+            ):
+                item["latest_outcome"] = outcome
+                item["last_checked_at"] = stamp
+                item["last_http_status"] = status
         rows = []
         for item in grouped.values():
             score = wilson_lower(item["successes"], item["proxy_failures"])
