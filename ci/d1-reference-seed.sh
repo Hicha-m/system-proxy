@@ -6,13 +6,15 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$ROOT"
 export PYTHONPATH="$ROOT/src"
 export PYTHONDONTWRITEBYTECODE=1
+source "$ROOT/ci/storage.sh"
+storage_prepare
 python3 - <<'PY'
 import json
 import os
 from pathlib import Path
 from system_proxy.d1_storage import plan_reference_sync
 
-db = Path(os.environ.get("SYSTEM_PROXY_DATA_DIR", str(Path.home()/".local/share/system-proxy"))) / "campaign.sqlite3"
+db = Path(os.environ["SYSTEM_PROXY_DATA_DIR"]) / "campaign.sqlite3"
 plan = plan_reference_sync(db, max_endpoints=5000, max_events=2000,
                            max_sources=10000, since_hours=72)
 best = sorted(
