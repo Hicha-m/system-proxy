@@ -6,6 +6,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+from .persistence import data_directory
+
 from .campaign import TARGET
 from .destination import wilson_lower
 
@@ -57,7 +59,7 @@ def load_report(db: Path, *, target_url: str = TARGET, limit: int = 20) -> dict:
 
 def main(argv=None):
     p=argparse.ArgumentParser(description="Read-only per-URL proxy ranking")
-    p.add_argument("--db",type=Path,default=Path.home()/".local/share/system-proxy/campaign.sqlite3")
+    p.add_argument("--db",type=Path,default=data_directory() / "campaign.sqlite3")
     p.add_argument("--target-url",default=TARGET)
     p.add_argument("--limit",type=int,default=20)
     a=p.parse_args(argv)
