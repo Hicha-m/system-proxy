@@ -40,6 +40,13 @@ jobs:
     timeout: 21600
     network: true
 
+  # Bounded SQLite bootstrap after a Codespace rebuild.
+  d1-bootstrap:
+    script: ci/d1-bootstrap.sh
+    execution: persistent
+    timeout: 300
+    network: true
+
   daily-status:
     script: ci/daily-status.sh
     execution: persistent
@@ -65,6 +72,7 @@ pipelines:
   campaign-report: [campaign-report]
   daily: [daily]
   daily-status: [daily-status]
+  d1-bootstrap: [d1-bootstrap]
   public-demo: [public-demo]
   d1-smoke: [d1-smoke]
   d1-preview: [d1-preview]
