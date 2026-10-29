@@ -72,6 +72,16 @@ cela ne signifie pas encore que toute la synchronisation est automatique.
 
 [Guide de fonctionnement Codespace + D1](docs/CODESPACE_D1.md).
 
+## P0 — reprise apres reconstruction Codespaces
+
+La base SQLite reside desormais hors du depot dans le volume persistant
+`/workspaces/.system-proxy-state` et beneficie de sauvegardes SQLite
+integres verifiees. Des tests isolés simulent une reconstruction.
+La suppression du Codespace reste hors du perimetre : il faudra une
+sauvegarde externe chiffree.
+
+[Guide P0 de persistance et de reprise](docs/P0_STORAGE_RECOVERY.md).
+
 ## Principes retenus
 
 1. **Un produit, un moteur logique, plusieurs modules internes** : chaque responsabilité possède une interface claire ; éviter les implémentations doublonnées.

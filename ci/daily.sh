@@ -4,8 +4,10 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$ROOT"
 export PYTHONPATH="$ROOT/src"
 export PYTHONDONTWRITEBYTECODE=1
-DATA_DIR="${SYSTEM_PROXY_DATA_DIR:-${HOME}/.local/share/system-proxy}"
-mkdir -p "$DATA_DIR"
+source "$ROOT/ci/storage.sh"
+storage_prepare
+DATA_DIR="$SYSTEM_PROXY_DATA_DIR"
+trap storage_snapshot_on_exit EXIT
 python3 -m system_proxy.daily \
   --db "$DATA_DIR/campaign.sqlite3" \
   --max-checks "${PROXY_DAILY_MAX_CHECKS:-10000}" \

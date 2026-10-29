@@ -55,14 +55,19 @@ Lancer une campagne quotidienne ponctuelle en gardant l'historique du Codespace 
 
 ~~~bash
 bash ci/daily.sh
-# ou : python3 -m system_proxy.daily --db "$HOME/.local/share/system-proxy/campaign.sqlite3"
+# ou : python3 -m system_proxy.daily (stockage persistant par defaut)
 ~~~
 
 Le pipeline MCP 'daily' appelle ce meme script sur la machine Codespace
 avec 'execution: persistent'. Les donnees y restent dans :
 
-    /home/codespace/.local/share/system-proxy/campaign.sqlite3
-    /home/codespace/.local/share/system-proxy/exports/
+    /workspaces/.system-proxy-state/campaign.sqlite3
+    /workspaces/.system-proxy-state/exports/
+
+Les deux sauvegardes verifies sont conservees sous
+`/workspaces/.system-proxy-state-backups/`. Ce stockage survit a la
+reconstruction du conteneur, pas a la suppression du Codespace.
+Voir [la procedure P0](P0_STORAGE_RECOVERY.md).
 
 Les historiques **GitHub Actions et Codespace sont distincts**. Le workflow
 GitHub Actions restaure son historique depuis les artefacts de ses runs,
@@ -74,7 +79,7 @@ Pour exporter sans refaire de requetes reseau :
 
 ~~~bash
 PYTHONPATH=src python3 -m system_proxy.project_export \
-  --db "$HOME/.local/share/system-proxy/campaign.sqlite3" \
+  --db "/workspaces/.system-proxy-state/campaign.sqlite3" \
   --profiles config/proxy-projects.json
 ~~~
 

@@ -13,6 +13,8 @@ from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from .persistence import data_directory
+
 from .campaign import (
     DOMAIN, TARGET, _execute_batch, collect_inventory,
 )
@@ -186,7 +188,7 @@ def run_daily(*, db: Path, max_checks: int = 10000,
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Daily proxy discovery and freshness rechecks")
-    p.add_argument("--db", type=Path, default=Path.home() / ".local/share/system-proxy/campaign.sqlite3")
+    p.add_argument("--db", type=Path, default=data_directory() / "campaign.sqlite3")
     p.add_argument("--max-checks", type=int, default=10000)
     p.add_argument("--runtime-seconds", type=int, default=20400)
     p.add_argument("--timeout", type=float, default=2.0)

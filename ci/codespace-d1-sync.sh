@@ -6,7 +6,9 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$ROOT"
 export PYTHONPATH="$ROOT/src"
 export PYTHONDONTWRITEBYTECODE=1
-DATA_DIR="${SYSTEM_PROXY_DATA_DIR:-${HOME}/.local/share/system-proxy}"
+source "$ROOT/ci/storage.sh"
+storage_prepare
+DATA_DIR="$SYSTEM_PROXY_DATA_DIR"
 DB="$DATA_DIR/campaign.sqlite3"
 if [[ ! -f "$DB" ]]; then
   printf '{"status":"skipped","reason":"no_local_campaign_database"}\n'

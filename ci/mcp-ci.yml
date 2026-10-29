@@ -47,6 +47,17 @@ jobs:
     timeout: 300
     network: true
 
+  # Inspect durable workspace SQLite and two verified backup generations.
+  storage-status:
+    script: ci/storage-status.sh
+    execution: persistent
+    timeout: 60
+
+  # Simulate a Codespace rebuild in temporary directories only.
+  rebuild-smoke:
+    script: ci/rebuild-smoke.sh
+    timeout: 45
+
   daily-status:
     script: ci/daily-status.sh
     execution: persistent
@@ -72,6 +83,8 @@ pipelines:
   campaign-report: [campaign-report]
   daily: [daily]
   daily-status: [daily-status]
+  storage-status: [storage-status]
+  rebuild-smoke: [rebuild-smoke]
   d1-bootstrap: [d1-bootstrap]
   public-demo: [public-demo]
   d1-smoke: [d1-smoke]
