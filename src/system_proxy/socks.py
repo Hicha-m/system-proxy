@@ -14,6 +14,15 @@ HOST = "example.com"
 PORT = 443
 
 
+class SocksNegotiationError(ConnectionError):
+    """Safe and stable protocol-stage failure; never contains endpoint details."""
+
+    def __init__(self, reason: str, *, unavailable: bool = False):
+        super().__init__(reason)
+        self.reason = reason
+        self.unavailable = unavailable
+
+
 def recv_exact(conn: socket.socket, size: int) -> bytes:
     if not 0 <= size <= 65535:
         raise ValueError("Invalid SOCKS read size")
@@ -21,7 +30,7 @@ def recv_exact(conn: socket.socket, size: int) -> bytes:
     while len(result) < size:
         chunk = conn.recv(size - len(result))
         if not chunk:
-            raise ConnectionError("SOCKS connection ended early")
+            raise SocksNegotiationError("socks_early_eof")
         result.extend(chunk)
     return bytes(result)
 
@@ -31,12 +40,12 @@ def establish(conn: socket.socket, protocol: str) -> None:
     if protocol == "socks5":
         conn.sendall(b"\x05\x01\x00")  # version 5, one auth method, NO-AUTH
         if recv_exact(conn, 2) != b"\x05\x00":
-            raise ConnectionError("SOCKS5 no-auth rejected")
+            raise SocksNegotiationError("socks5_auth_unavailable", unavailable=True)
         conn.sendall(b"\x05\x01\x00\x03" + bytes([len(target)]) +
                      target + struct.pack("!H", PORT))
         header = recv_exact(conn, 4)
         if header[0] != 5 or header[1] != 0 or header[2] != 0:
-            raise ConnectionError("SOCKS5 CONNECT refused")
+            raise SocksNegotiationError("socks5_connect_rejected", unavailable=True)
         if header[3] == 1:
             recv_exact(conn, 4 + 2)
         elif header[3] == 4:
@@ -45,14 +54,14 @@ def establish(conn: socket.socket, protocol: str) -> None:
             count = recv_exact(conn, 1)[0]
             recv_exact(conn, count + 2)
         else:
-            raise ConnectionError("Unexpected SOCKS5 address type")
+            raise SocksNegotiationError("socks5_malformed_reply")
     elif protocol == "socks4":
         # SOCKS4a name resolution through the proxy, avoids local DNS.
         conn.sendall(b"\x04\x01" + struct.pack("!H", PORT) +
                      b"\x00\x00\x00\x01\x00" + target + b"\x00")
         response = recv_exact(conn, 8)
         if response[0] != 0 or response[1] != 0x5A:
-            raise ConnectionError("SOCKS4a CONNECT refused")
+            raise SocksNegotiationError("socks4_connect_rejected", unavailable=True)
     else:
         raise ValueError("Unsupported SOCKS protocol")
 
