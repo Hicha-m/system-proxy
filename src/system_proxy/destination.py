@@ -150,7 +150,7 @@ class DestinationHealth:
               SELECT outcome,http_status,latency_ms,observed_at
               FROM destination_observations
               WHERE ip=? AND port=? AND protocol=? AND domain=?
-              ORDER BY id DESC
+              ORDER BY observed_at DESC,id DESC
             """, (ip,port,proto,hostname)).fetchall()
             success = sum(o[0]=="success" for o in history)
             # Restrictions describe the target, NOT a broken proxy. Keep them
@@ -168,7 +168,7 @@ class DestinationHealth:
             global_status = self.db.execute("""
               SELECT status,checked_at FROM checks
               WHERE ip=? AND port=? AND protocol=?
-              ORDER BY id DESC LIMIT 1
+              ORDER BY checked_at DESC,id DESC LIMIT 1
             """, (ip,port,proto)).fetchone()
             global_ok = None
             if global_status:
