@@ -109,6 +109,33 @@ system-proxy-gateway-stats --db proxy-history.sqlite3 --domain example.com
 
 La politique de reprises, ses limites et les précautions sont documentées dans [docs/FAILOVER_AND_AUDIT.md](docs/FAILOVER_AND_AUDIT.md).
 
+
+## Routine quotidienne de verification (nouveau)
+
+Chaque jour a **06:23 UTC**, GitHub Actions relance la collecte des sources
+publiques, repere les **nouveaux proxies**, recontrole les succes assez anciens,
+respecte un delai de reprise apres echec, enregistre les observations dans
+SQLite et publie un artefact avec l'historique et les **exports par projet**.
+La planification fonctionne meme si le Codespace est arrete ; la facture de
+calcul GitHub Actions est distincte de Codespaces.
+
+Pour lancer une mise a jour sur le Codespace existant via le pipeline MCP
+'**daily**', ou depuis son terminal :
+
+```bash
+bash ci/daily.sh
+PYTHONPATH=src python3 -m system_proxy.project_export \
+  --db "$HOME/.local/share/system-proxy/campaign.sqlite3" \
+  --profiles config/proxy-projects.json
+```
+
+Les listes par projet sont en JSON et TXT, et n'incluent que des proxies avec
+**au moins deux succes**, un test recent et un score minimal. Pour l'instant,
+la verification active concerne **https://example.com/** uniquement : un proxy
+reference ici n'est pas automatiquement valide pour un autre site.
+
+Voir [la routine quotidienne et les exports](docs/DAILY_VERIFICATION.md).
+
 ## Documentation
 
 - [Plan de projet, architecture candidate et roadmap](docs/PROJECT_PLAN.md)
