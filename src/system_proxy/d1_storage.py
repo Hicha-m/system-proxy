@@ -15,6 +15,8 @@ import sqlite3
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+from .persistence import data_directory
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
@@ -410,7 +412,7 @@ def main(argv=None):
     p=argparse.ArgumentParser(
         description="Optional, bounded SQLite-to-Cloudflare-D1 reference sync"
     )
-    p.add_argument("--db",type=Path,default=Path.home()/".local/share/system-proxy/campaign.sqlite3")
+    p.add_argument("--db",type=Path,default=data_directory() / "campaign.sqlite3")
     p.add_argument("--max-endpoints",type=int,default=5000)
     p.add_argument("--max-events",type=int,default=2000)
     p.add_argument("--max-sources",type=int,default=10000)
