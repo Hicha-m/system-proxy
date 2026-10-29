@@ -60,7 +60,7 @@ class P1Tests(unittest.TestCase):
     def test_latest_is_timestamp_not_last_insert(self):
         self.insert(NOW-timedelta(seconds=3),"success")
         self.insert(NOW-timedelta(seconds=2),"success")
-        self.insert(NOW-timedelta(days=5),"proxy_error") # late arrival, older check
+        self.insert(NOW-timedelta(days=40),"proxy_error") # late arrival, outside score window
         self.assertEqual(export_projects(self.h.conn,self.folder/"out",now=NOW)["reference-http"],1)
 
     def test_per_domain_restrictions_excluded_from_failure_score(self):
@@ -122,7 +122,7 @@ class P1Tests(unittest.TestCase):
         self.assertTrue((_backup_dir(self.folder)/"latest.sqlite3").is_file())
         with sqlite3.connect(self.db) as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM url_checks").fetchone()[0],1)
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM destination_observations").fetchone()[0],2)
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM destination_observations").fetchone()[0],1
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM checks").fetchone()[0],1)
         self.h=History(self.db)
 
