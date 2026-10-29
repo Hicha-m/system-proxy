@@ -17,6 +17,7 @@ system-proxy-select = "system_proxy.select:main"
 system-proxy-gateway = "system_proxy.gateway:main"
 system-proxy-gateway-stats = "system_proxy.gateway_history:main"
 system-proxy-targets = "system_proxy.target_cli:main"
+system-proxy-d1 = "system_proxy.d1_storage:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
