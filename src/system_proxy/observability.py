@@ -101,7 +101,7 @@ def load_observability(db: Path, *, days: int = 14,
             ).fetchone()[0]
             report["inventory_by_protocol"] = _counts(conn.execute(
                 "SELECT protocol, COUNT(*) FROM endpoints GROUP BY protocol"
-            ))
+            ), sanitize=lambda value: value if value in {"http", "https", "socks4", "socks5"} else "other")
             if "daily_runs" in tables:
                 report["daily_runs"] = [
                     {"day": day, "collected": collected, "new": new,
