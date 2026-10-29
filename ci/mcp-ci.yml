@@ -51,6 +51,12 @@ jobs:
     execution: persistent
     timeout: 300
 
+  # Small reference-only handoff fixture for one-time D1 ingestion test.
+  d1-reference-seed:
+    script: ci/d1-reference-seed.sh
+    execution: persistent
+    timeout: 300
+
   # Read the same persistent SQLite database as the campaign.
   campaign-report:
     script: ci/campaign-report.sh
@@ -68,3 +74,4 @@ pipelines:
   public-demo: [public-demo]
   d1-smoke: [d1-smoke]
   d1-preview: [d1-preview]
+  d1-reference-seed: [d1-reference-seed]
