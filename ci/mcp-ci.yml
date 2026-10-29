@@ -12,11 +12,13 @@ jobs:
   p2-benchmark: {script: ci/p2-benchmark.sh, timeout: 45}
   p2-observe: {script: ci/p2-observe.sh, execution: persistent, timeout: 60}
   p2-failures: {script: ci/p2-failure-diagnostics.sh, execution: persistent, timeout: 60}
+  lot1-live: {script: ci/lot1-live.sh, execution: persistent, timeout: 180, network: true}
 pipelines:
   quick: [test, build]
   p2: [test, build, p2-benchmark]
   p2-observe: [p2-observe]
   p2-failures: [p2-failures]
+  lot1-live: [lot1-live]
   campaign: [campaign]
   daily: [daily]
   d1-bootstrap: [d1-bootstrap]
