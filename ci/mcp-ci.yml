@@ -6,7 +6,7 @@ jobs:
   daily: {script: ci/daily.sh, execution: persistent, timeout: 21600, network: true}
   d1-bootstrap: {script: ci/d1-bootstrap.sh, execution: persistent, timeout: 300, network: true}
   storage-status: {script: ci/storage-status.sh, execution: persistent, timeout: 60}
-  rebuild-smoke: {script: ci/rebuild-smoke.sh, timeout: 45}
+  rebuild-smoke: {script: ci/repair-backups.sh, execution: persistent, timeout: 60}
   daily-status: {script: ci/daily-status.sh, execution: persistent, timeout: 60}
   d1-preview: {script: ci/d1-preview.sh, execution: persistent, timeout: 300}
   p2-benchmark: {script: ci/p2-benchmark.sh, timeout: 45}
