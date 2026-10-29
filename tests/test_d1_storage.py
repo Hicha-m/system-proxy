@@ -156,6 +156,32 @@ class D1ImporterTests(unittest.TestCase):
         self.assertNotIn("private.example",str(store.queries))
         store.conn.close()
 
+    def test_daily_campaign_metadata_is_idempotently_persisted(self):
+        with sqlite3.connect(self.db) as db:
+            db.execute("""
+                CREATE TABLE daily_runs (
+                    day TEXT PRIMARY KEY, started_at TEXT, ended_at TEXT,
+                    collected INTEGER, new_candidates INTEGER, attempted INTEGER,
+                    passed INTEGER, failed INTEGER)
+            """)
+            stamp=self.now.isoformat()
+            db.execute(
+                "INSERT INTO daily_runs VALUES (?,?,?,?,?,?,?,?)",
+                ("2026-10-29",stamp,stamp,5000,120,300,25,275)
+            )
+        plan=plan_reference_sync(self.db,now=self.now)
+        self.assertEqual(len(plan["runs"]),1)
+        store=InMemoryD1()
+        apply_reference_sync(store,plan)
+        self.assertEqual(store.conn.execute(
+            "SELECT run_id,endpoints_seen,checks_attempted FROM collection_runs"
+        ).fetchone(),("reference-2026-10-29",5000,300))
+        apply_reference_sync(store,plan)
+        self.assertEqual(store.conn.execute(
+            "SELECT COUNT(*) FROM collection_runs"
+        ).fetchone()[0],1)
+        store.conn.close()
+
     def test_limits_and_age_filter(self):
         with self.assertRaises(ValueError):
             plan_reference_sync(self.db,max_endpoints=0)
