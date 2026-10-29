@@ -38,3 +38,4 @@ config/*.private.yaml
 *.secrets.yaml
 exports/
 .state/
+target-exports/
