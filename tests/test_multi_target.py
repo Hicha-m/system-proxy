@@ -202,6 +202,31 @@ class Ranking(unittest.TestCase):
                 self.add(self.first, **item)
         self.assertEqual(self.store.stats(self.first)["total_observations"], 0)
 
+    def test_target_export_only_includes_recent_eligible_proxies(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from system_proxy.target_cli import main
+        for _ in range(3):
+            self.add(self.first, ip="8.8.8.8")
+        self.add(self.first, ip="1.1.1.1")
+        outdir = Path(self.temp.name) / "out"
+        args = [
+            "--config", str(Path(self.temp.name) / "profiles.json"),
+            "--db", str(self.db), "export",
+            "--project", "demo", "--target", "first",
+            "--protocol", "http", "--output-dir", str(outdir),
+        ]
+        with redirect_stdout(StringIO()) as buffer:
+            self.assertEqual(main(args), 0)
+        result = json.loads(buffer.getvalue())
+        self.assertEqual(result["count"], 1)
+        path = outdir / "demo/first/http.txt"
+        self.assertEqual(path.read_text(), "http://8.8.8.8:8080\\n".replace("\\\\n", "\\n"))
+        json_path = outdir / "demo/first/http.json"
+        exported = json.loads(json_path.read_text())
+        self.assertEqual(exported["proxies"][0]["ip"], "8.8.8.8")
+        self.assertTrue(exported["proxies"][0]["eligible"])
+
     def test_multiple_protocols_are_independent(self):
         for _ in range(3):
             self.add(self.first, protocol="socks4")
