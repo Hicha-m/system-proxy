@@ -11,7 +11,7 @@ import random
 import sqlite3
 import statistics
 from collections import Counter
-from pathlib import Path
+from datetime import datetime, timedelta, timezone
 
 from .persistence import data_directory
 from .verification import check_one, direct_baseline_details
@@ -31,6 +31,8 @@ REASON_CODES = frozenset({
     "upstream_or_target_error", "invalid_http_response", "url_error_unknown",
     "proxy_connection_error", "network_or_protocol_error", "invalid_probe_request",
     "unexpected_checker_exception", "protocol_not_implemented", "check_target_unavailable",
+    "socks_early_eof", "socks5_auth_unavailable", "socks5_connect_rejected",
+    "socks5_malformed_reply", "socks4_connect_rejected",
 })
 
 
@@ -40,6 +42,7 @@ def select_sample(conn: sqlite3.Connection, *, per_protocol: int = SAMPLE_PER_PR
     if not 1 <= per_protocol <= 12:
         raise ValueError("Sampling exceeds approved limit")
     rng = random.Random(seed)
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
     samples = {}
     coverage = {}
     for protocol in PROTOCOLS:
@@ -53,8 +56,8 @@ def select_sample(conn: sqlite3.Connection, *, per_protocol: int = SAMPLE_PER_PR
         # so this probe does not repeatedly contact the same public proxies.
         recently_checked = set(conn.execute("""
             SELECT ip,port,protocol FROM checks
-            WHERE protocol=? AND checked_at>=datetime('now','-1 day')
-        """, (protocol,)).fetchall())
+            WHERE protocol=? AND checked_at>=?
+        """, (protocol, cutoff)).fetchall())
         fresh = [r for r in eligible if r not in recently_checked]
         count = min(per_protocol, len(fresh))
         samples[protocol] = rng.sample(fresh, count)
