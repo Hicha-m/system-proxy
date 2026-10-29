@@ -1,0 +1,62 @@
+name: Daily proxy discovery and verification
+
+on:
+  schedule:
+    - cron: '23 6 * * *'  # 06:23 UTC, every day
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: proxy-daily-verification
+  cancel-in-progress: false
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Restore last saved SQLite history
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p .state
+          artifact_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" --jq '.artifacts[] | select(.name | startswith("proxy-daily-state-")) | select(.expired == false) | .id' | head -n 1)
+          if [[ -n "$artifact_id" ]]; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > /tmp/proxy-daily-state.zip
+            unzip -p /tmp/proxy-daily-state.zip campaign.sqlite3 > .state/campaign.sqlite3
+            python3 - <<'PY'
+          import sqlite3
+          db = sqlite3.connect('.state/campaign.sqlite3')
+          assert db.execute('PRAGMA integrity_check').fetchone()[0] == 'ok', 'Previous SQLite history is corrupt'
+          db.close()
+          PY
+            echo "Restored SQLite database from artifact $artifact_id"
+          else
+            echo 'No previous daily artifact: starting a new SQLite history.'
+          fi
+      - name: Daily refresh, rechecks and project exports
+        env:
+          SYSTEM_PROXY_DATA_DIR: ${{ github.workspace }}/.state
+          PROXY_DAILY_MAX_CHECKS: '10000'
+          PROXY_DAILY_WORKERS: '12'
+          PROXY_DAILY_RUNTIME: '6600'
+        run: bash ci/daily.sh
+      - name: Persist updated history and exports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proxy-daily-state-${{ github.run_id }}
+          path: .state/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 6
