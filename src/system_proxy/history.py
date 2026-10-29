@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .collect import normalize_endpoint
 from .verification import Check
+from .reliability import temporal_wilson
 
 
 class History:
@@ -120,6 +121,9 @@ class History:
                 score = round(100 * max(0.0, lower), 1)
             else:
                 score = None
+            temporal_score = temporal_wilson(
+                ((row[0], row[2]) for row in rows), now=now,
+            )
             last = rows[0] if rows else None
             age = None
             if last:
@@ -139,6 +143,7 @@ class History:
                 "passed": passed, "failed": failed,
                 "unavailable": len(rows)-n,
                 "reliability_score": score,
+                "temporal_score": temporal_score,
                 "latest_status": last[0] if last else "untested",
                 "last_checked_at": last[2] if last else None,
                 "fresh": fresh,
@@ -159,7 +164,7 @@ class History:
         return {"checked_endpoints": sum(e["latest_status"] != "untested" for e in output),
                 "total_endpoints": len(output), "freshness_seconds": stale_after_seconds,
                 "endpoints": output, "source_stats": source_report,
-                "score_definition": "Wilson 95% lower bound over local passed/failed checks; unavailable excluded"}
+                "score_definition": "Legacy all-time Wilson score; temporal_score is 30-day, 7-day-half-life Wilson, excluding unavailable"}
 
     def __enter__(self):
         return self
