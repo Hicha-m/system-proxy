@@ -16,6 +16,7 @@ from system_proxy.destination import DestinationHealth, Observation
 from system_proxy.history import History
 from system_proxy.project_export import export_projects
 from system_proxy.retention import prune_history
+from system_proxy.persistence import _backup_dir
 from system_proxy.verification import Check, check_one, classify_probe_exception
 
 NOW = datetime.now(timezone.utc)
@@ -113,12 +114,12 @@ class P1Tests(unittest.TestCase):
         self.assertEqual(preview["status"],"dry_run")
         self.assertEqual(preview["eligible"]["url_checks"],2)
         self.assertEqual(self.h.conn.execute("SELECT COUNT(*) FROM url_checks").fetchone()[0],before)
-        self.assertFalse((self.folder/".campaign.sqlite3-backups").exists())
+        self.assertFalse(_backup_dir(self.folder).exists())
         self.h.close()
         result=prune_history(self.db,days=90,now=NOW,apply=True)
         self.assertEqual(result["status"],"applied")
-        self.assertEqual(result["deleted"],3) # 2 reference + 1 older raw check
-        self.assertTrue((self.folder/".campaign.sqlite3-backups/latest.sqlite3").is_file())
+        self.assertEqual(result["deleted"],4) # 2 reference + 1 check + 1 destination
+        self.assertTrue((_backup_dir(self.folder)/"latest.sqlite3").is_file())
         with sqlite3.connect(self.db) as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM url_checks").fetchone()[0],1)
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM destination_observations").fetchone()[0],2)
