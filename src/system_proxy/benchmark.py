@@ -54,11 +54,11 @@ def benchmark(*, endpoints: int = 2000, workers: int = 4,
             conn.executemany("INSERT INTO endpoints VALUES (?,?,?)", records)
             conn.executemany(
                 "INSERT INTO url_checks VALUES (?,?,?,?,?,?,?)",
-                (
-                    ip, port, protocol, "https://example.com/",
-                    ("success", "proxy_error", "unknown")[i % 3], 45 + i % 300, now
-                )
-                for i, (ip, port, protocol) in enumerate(records)
+                [
+                    (ip, port, protocol, "https://example.com/",
+                     ("success", "proxy_error", "unknown")[i % 3], 45 + i % 300, now)
+                    for i, (ip, port, protocol) in enumerate(records)
+                ],
             )
             conn.commit()
             insert_seconds = time.perf_counter() - insert_start
