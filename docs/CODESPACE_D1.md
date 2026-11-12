@@ -42,6 +42,23 @@ nouvelles valeurs. Les outils Remote Dev MCP ne peuvent ni créer ni transférer
 un secret depuis ChatGPT. Vérifier que les trois secrets autorisent bien
 l'accès au dépôt `Hicha-m/system-proxy`.
 
+### GitHub Actions planifié (daily-proxies.yml)
+
+Le workflow quotidien à 06:23 UTC s'exécute sur un runner GitHub Actions,
+indépendant du Codespace. Les Codespaces secrets ne lui sont pas accessibles.
+Pour que cette collecte planifiée synchronise elle aussi D1, créer les trois
+mêmes noms dans **Settings → Secrets and variables → Actions → Repository
+secrets** :
+
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_D1_DATABASE_ID`
+- `CLOUDFLARE_API_TOKEN`
+
+Le workflow vérifie leur présence avant la collecte, puis les transmet
+uniquement à l'environnement du processus `ci/daily.sh`. S'il en manque un,
+le workflow échoue explicitement sans démarrer la collecte ni afficher la
+valeur d'un secret. Ces Actions secrets sont distincts des Codespaces secrets.
+
 Le compte Cloudflare utilise ici est celui du proprietaire; ce depot
 contient uniquement des exemples sans identifiants reels.
 
