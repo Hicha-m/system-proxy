@@ -14,17 +14,22 @@ record_d1() {
   python3 -m system_proxy.ops record-sync --data-dir "$DATA_DIR" \
     --status "$1" --reason "$2"
 }
+# D1 sync is a required success condition. A skipped transfer must never
+# be reported as a successful CI job.
 if [[ ! -f "$DB" ]]; then
-  record_d1 skipped no_local_campaign_database
-  exit 0
+  record_d1 failed no_local_campaign_database
+  printf '{"status":"failed","reason":"no_local_campaign_database"}\n' >&2
+  exit 1
 fi
 if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
-  record_d1 skipped codespace_cloudflare_secret_missing
-  exit 0
+  record_d1 failed codespace_cloudflare_secret_missing
+  printf '{"status":"failed","reason":"codespace_cloudflare_secret_missing"}\n' >&2
+  exit 1
 fi
 if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" || -z "${CLOUDFLARE_D1_DATABASE_ID:-}" ]]; then
-  record_d1 skipped cloudflare_d1_identifiers_missing
-  exit 0
+  record_d1 failed cloudflare_d1_identifiers_missing
+  printf '{"status":"failed","reason":"cloudflare_d1_identifiers_missing"}\n' >&2
+  exit 1
 fi
 if python3 -m system_proxy.d1_storage \
   --db "$DB" \
