@@ -43,12 +43,31 @@ jobs:
           else
             echo 'No previous daily artifact: starting a new SQLite history.'
           fi
-      - name: Daily refresh, rechecks and project exports
+      - name: Verify required Cloudflare D1 Actions secrets
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_DATABASE_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_D1_DATABASE_ID CLOUDFLARE_API_TOKEN; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Required GitHub Actions secret $name is missing."
+              missing=1
+            fi
+          done
+          exit "$missing"
+      - name: Daily refresh, rechecks, project exports and Cloudflare D1 sync
         env:
           SYSTEM_PROXY_DATA_DIR: ${{ github.workspace }}/.state
           PROXY_DAILY_MAX_CHECKS: '10000'
           PROXY_DAILY_WORKERS: '12'
           PROXY_DAILY_RUNTIME: '6600'
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_DATABASE_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: bash ci/daily.sh
       - name: Persist updated history and exports
         if: always()
