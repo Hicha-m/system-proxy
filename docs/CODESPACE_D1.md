@@ -10,8 +10,11 @@ des observations de reference uniquement.
 2. La collecte reste identique (sources, tests et exports de reference).
 3. Apres la collecte reussie, le script invoque
    `ci/codespace-d1-sync.sh`, sauf si `PROXY_D1_SYNC_ENABLED=0`.
-4. Sans token, le job affiche un statut JSON `skipped` explicite et
-   n'ecrit rien dans D1. Avec le token, il execute l'import `--apply`.
+4. La synchronisation est obligatoire : base locale absente, token manquant,
+   identifiants manquants ou erreur Cloudflare enregistrent un reçu `failed`
+   et font terminer le job avec un code non nul. Aucun transfert n'est déclaré
+   réussi lorsqu'il a été ignoré. Avec les trois variables présentes, l'import
+   `--apply` est exécuté.
 5. Le synchroniseur filtre strictement les observations de
    `https://example.com/` ; il n'envoie pas les URLs ni les resultats des
    projets prives vers cette base D1 de reference.
@@ -30,13 +33,14 @@ MCP**, il faut trois variables :
 - `CLOUDFLARE_D1_DATABASE_ID` : identifiant UUID de la base `system-proxy`.
 - `CLOUDFLARE_API_TOKEN` : token prive restreint a D1 Edit sur le compte.
 
-Ne pas mettre ces valeurs dans GitHub, les logs, les fichiers publics ou
-un fichier .env commite. Les autorisations de l'outil Remote Dev MCP ne
-permettent pas de creer ou transferer un secret depuis ChatGPT vers le
-Codespace. Le proprietaire doit configurer l'acces une seule fois via
-le gestionnaire de secrets adapte a cet environnement. Attention :
-un secret GitHub Codespaces n'est pas forcement expose aux jobs de
-Remote Dev MCP. Verifier l'heritage effectif des variables d'environnement.
+Ne pas mettre ces valeurs dans le dépôt GitHub, les logs, les fichiers
+publics ou un fichier .env commité. Les secrets Codespaces sont distincts
+des secrets GitHub Actions. Ils sont injectés dans un Codespace à sa création
+ou à son redémarrage : si un secret a été ajouté ou modifié pendant que le
+Codespace était actif, arrêter puis redémarrer ce Codespace pour charger les
+nouvelles valeurs. Les outils Remote Dev MCP ne peuvent ni créer ni transférer
+un secret depuis ChatGPT. Vérifier que les trois secrets autorisent bien
+l'accès au dépôt `Hicha-m/system-proxy`.
 
 Le compte Cloudflare utilise ici est celui du proprietaire; ce depot
 contient uniquement des exemples sans identifiants reels.
@@ -68,10 +72,16 @@ Dans Remote Dev MCP : executer le pipeline `daily` sur un commit
 contenant ce changement et consulter les logs du job `daily`.
 Les sorties de synchronisation possibles :
 
-- `{"status":"skipped","reason":"codespace_cloudflare_secret_missing"}` :
-  aucune synchronisation reelle.
-- `{"status":"synced",...}` : la requete D1 a ete effectuee.
-- Erreur HTTP D1 : echec signale, la campagne SQLite locale est conservee.
+- `{"status":"synced",...}` : l'import D1 a ete execute.
+- `{"status":"failed","reason":"codespace_cloudflare_secret_missing"}` :
+  secret non injecte ; le job échoue et aucune écriture D1 n'est tentée.
+- `{"status":"failed","reason":"cloudflare_d1_identifiers_missing"}` :
+  identifiants incomplets ; le job échoue.
+- `{"status":"failed","reason":"transport_or_schema_error"}` :
+  erreur D1 ; le job échoue et la campagne SQLite locale est conservée.
+
+Le statut `disabled` est aussi signalé comme une anomalie par le rapport
+opérationnel. Le pipeline `daily` échoue si la synchronisation est désactivée.
 
 Le pipeline `d1-preview` est toujours un controle en lecture seule.
 Il affiche un echantillon borne de proxies publics verifies sur le
