@@ -73,6 +73,11 @@ echantillon reel de huit proxies de reference a ete transfere vers D1 et
 relu avec succes via les MCP; cela ne signifie pas encore que toute la
 synchronisation est automatique.
 
+Le workflow quotidien GitHub Actions utilise egalement ce synchroniseur.
+Il exige les trois secrets Cloudflare dans **Settings → Secrets and variables
+→ Actions** ; les Codespaces secrets ne sont pas partages avec les runners
+GitHub Actions.
+
 [Guide de fonctionnement Codespace + D1](docs/CODESPACE_D1.md).
 
 ## P0 — reprise apres reconstruction Codespaces
