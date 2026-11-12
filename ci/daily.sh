@@ -23,6 +23,8 @@ if [[ "${PROXY_D1_SYNC_ENABLED:-1}" == "1" ]]; then
 else
   python3 -m system_proxy.ops record-sync --data-dir "$DATA_DIR" \
     --status disabled --reason owner_disabled
+  printf '{"status":"failed","reason":"d1_sync_disabled"}\n' >&2
+  exit 1
 fi
 
 # Maintenance defaults to a read-only 90-day preview. Explicit opt-in
