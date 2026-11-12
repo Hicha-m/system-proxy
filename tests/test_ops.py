@@ -64,6 +64,8 @@ class OpsTests(unittest.TestCase):
         record_sync(self.root, outcome="synced", reason="ok",
                     now=now - timedelta(days=3))
         self.assertIn("d1_sync_stale", health(self.db, now=now)["alerts"])
+        record_sync(self.root, outcome="disabled", reason="owner_disabled", now=now)
+        self.assertIn("d1_sync_disabled", health(self.db, now=now)["alerts"])
 
     def test_receipt_rejects_unknown_values_and_unsafe_symlinks(self):
         for outcome, reason in (("token leaked", "ok"), ("synced", "secret reason")):
