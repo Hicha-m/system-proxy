@@ -88,6 +88,8 @@ def health(db: Path, *, now: datetime | None = None) -> dict:
         alerts.add("d1_sync_failed")
     elif sync["status"] == "skipped":
         alerts.add("d1_sync_skipped")
+    elif sync["status"] == "disabled":
+        alerts.add("d1_sync_disabled")
     elif sync["status"] == "unavailable":
         alerts.add("d1_receipt_invalid")
     elif sync["status"] == "synced":
