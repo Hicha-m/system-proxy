@@ -65,10 +65,13 @@ de ses resultats de reference vers Cloudflare D1 a la fin de la collecte.
 Cette synchronisation ne s'active qu'avec les identifiants Cloudflare
 configures comme secrets sur l'environnement d'execution Codespace.
 
-Le mode sans secret annonce explicitement `skipped`, sans exposer de donnees
-et sans interrompre la collecte. Un premier echantillon reel de huit proxies
-de reference a ete transfere vers D1 et relu avec succes via les MCP;
-cela ne signifie pas encore que toute la synchronisation est automatique.
+La synchronisation est une condition de reussite du pipeline : base SQLite
+absente, secret Cloudflare manquant, identifiants manquants ou erreur D1
+produisent un statut `failed` et un code de sortie non nul. Un transfert
+ignore ne peut donc plus faire passer le job pour un succes. Un premier
+echantillon reel de huit proxies de reference a ete transfere vers D1 et
+relu avec succes via les MCP; cela ne signifie pas encore que toute la
+synchronisation est automatique.
 
 [Guide de fonctionnement Codespace + D1](docs/CODESPACE_D1.md).
 
